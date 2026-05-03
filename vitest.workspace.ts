@@ -1,8 +1,6 @@
-import { defineWorkspace } from 'vitest/config';
-
-export default defineWorkspace([
+export default [
   'packages/core',
   'packages/cli',
   'packages/viewer',
   'packages/mcp',
-]);
+];
