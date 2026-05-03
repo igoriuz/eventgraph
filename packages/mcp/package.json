@@ -1,0 +1,19 @@
+{
+  "name": "@eventgraph/mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "bin": {
+    "eventgraph-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@eventgraph/core": "workspace:*",
+    "@eventgraph/viewer": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0"
+  }
+}

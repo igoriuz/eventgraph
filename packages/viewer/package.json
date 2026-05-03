@@ -1,0 +1,15 @@
+{
+  "name": "@eventgraph/viewer",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/generate.js",
+  "types": "dist/generate.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@eventgraph/core": "workspace:*",
+    "elkjs": "^0.9.0"
+  }
+}
