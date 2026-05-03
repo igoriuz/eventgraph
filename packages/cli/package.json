@@ -13,6 +13,7 @@
     "@eventgraph/core": "workspace:*",
     "@eventgraph/viewer": "workspace:*",
     "commander": "^13.0.0",
-    "inquirer": "^12.0.0"
+    "inquirer": "^12.0.0",
+    "yaml": "^2.7.0"
   }
 }
