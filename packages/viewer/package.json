@@ -4,8 +4,14 @@
   "type": "module",
   "main": "dist/generate.js",
   "types": "dist/generate.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/generate.d.ts",
+      "default": "./dist/generate.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/templates dist/templates",
     "test": "vitest run"
   },
   "dependencies": {
