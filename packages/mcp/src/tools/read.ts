@@ -24,7 +24,7 @@ export interface ReadToolsApi {
   eventgraph_validate(input: Record<string, never>): Promise<{ valid: boolean; errors: Array<{ type: string; message: string }> }>;
 }
 
-export function createReadTools(graph: EventGraph, config: ProjectConfig, projectDir: string): ReadToolsApi {
+export function createReadTools(graph: EventGraph, config: ProjectConfig, _projectDir: string): ReadToolsApi {
   const queryEngine = new QueryEngine(graph);
 
   return {

@@ -57,7 +57,7 @@ export function createWriteTools(graph: EventGraph, config: ProjectConfig, proje
       return { success: true };
     },
 
-    async eventgraph_update_node({ nodeId }) {
+    async eventgraph_update_node({ nodeId: _nodeId }) {
       if (mode === 'locked') {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
