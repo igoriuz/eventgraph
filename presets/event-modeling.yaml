@@ -1,0 +1,29 @@
+name: event-modeling
+nodeTypes:
+  - command
+  - event
+  - read-model
+  - policy
+  - screen
+  - aggregate
+edgeTypes:
+  - produces
+  - projects-to
+  - triggers
+  - reads
+edgeRules:
+  - type: produces
+    from: command
+    to: event
+  - type: projects-to
+    from: event
+    to: read-model
+  - type: triggers
+    from: event
+    to: policy
+  - type: reads
+    from: screen
+    to: read-model
+  - type: reads
+    from: policy
+    to: read-model
