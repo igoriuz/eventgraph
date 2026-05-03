@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventGraph } from '../graph.js';
-import type { GraphNode, GraphEdge } from '../schema.js';
+import type { GraphNode } from '../schema.js';
 
 describe('EventGraph', () => {
   let graph: EventGraph;
