@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EventGraph } from '../graph.js';
-import { validateGraph, loadPreset, type ValidationError } from '../validate.js';
+import { validateGraph, loadPreset } from '../validate.js';
 import type { PresetDefinition } from '../schema.js';
 
 const EVENT_MODELING_PRESET: PresetDefinition = {
