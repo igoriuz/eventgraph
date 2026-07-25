@@ -9,7 +9,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "yaml": "^2.7.0",
-    "ajv": "^8.17.0"
+    "ajv": "^8.17.0",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1"
   }
 }
