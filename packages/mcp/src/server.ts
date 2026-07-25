@@ -77,6 +77,22 @@ server.tool(
 );
 
 server.tool(
+  'eventgraph_check',
+  'Find completeness gaps in the graph — what is missing, not just whether the shape is valid. Use limit to get the most pressing gaps to work on next.',
+  {
+    lane: z
+      .enum(['bootstrap', 'structure', 'ux', 'platform'])
+      .optional()
+      .describe('Restrict to one lane of rules'),
+    limit: z.number().optional().describe('Return only the N most pressing gaps'),
+  },
+  async (input) => {
+    const result = await readTools.eventgraph_check(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
   'eventgraph_add_node',
   'Add a node to the architecture graph',
   {

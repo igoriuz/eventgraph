@@ -61,7 +61,12 @@ export function validateGraph(graph: EventGraph, preset: PresetDefinition): Vali
     if (preset.edgeRules.length > 0) {
       const matchingRules = preset.edgeRules.filter(r => r.type === edge.type);
       if (matchingRules.length > 0) {
-        const valid = matchingRules.some(r => r.from === fromNode.type && r.to === toNode.type);
+        // "*" lets a rule accept any node type on that end — needed for edges
+        // like decision→anything and question→anything.
+        const matches = (expected: string, actual: string) => expected === '*' || expected === actual;
+        const valid = matchingRules.some(
+          r => matches(r.from, fromNode.type) && matches(r.to, toNode.type)
+        );
         if (!valid) {
           errors.push({
             type: 'edge-rule-violation',

@@ -1,29 +1,80 @@
 name: event-modeling
+
+# Node and edge types define the *shape* of the graph. The rules further down
+# define what it means for that graph to be *complete* — a different question,
+# and the one that finds real gaps.
 nodeTypes:
+  - actor
   - command
   - event
   - read-model
   - policy
   - screen
   - aggregate
+  - invariant
+  - decision
+  - question
+
 edgeTypes:
-  - produces
-  - projects-to
-  - triggers
-  - reads
+  - issues        # actor     -> command
+  - produces      # command   -> event
+  - projects-to   # event     -> read-model
+  - triggers      # event     -> policy
+  - invokes       # policy    -> command
+  - reads         # screen    -> read-model
+  - offers        # screen    -> command
+  - navigates-to  # screen    -> screen
+  - belongs-to    # event     -> aggregate
+  - acts-on       # command   -> aggregate
+  - enforces      # command   -> invariant
+  - guards        # invariant -> aggregate
+  - sees          # actor     -> screen
+  - affects       # decision  -> anything
+  - blocks        # question  -> anything
+
 edgeRules:
-  - type: produces
-    from: command
-    to: event
-  - type: projects-to
-    from: event
-    to: read-model
-  - type: triggers
-    from: event
-    to: policy
-  - type: reads
-    from: screen
-    to: read-model
-  - type: reads
-    from: policy
-    to: read-model
+  - { type: issues, from: actor, to: command }
+  - { type: produces, from: command, to: event }
+  - { type: projects-to, from: event, to: read-model }
+  - { type: triggers, from: event, to: policy }
+  - { type: invokes, from: policy, to: command }
+  - { type: reads, from: screen, to: read-model }
+  - { type: reads, from: policy, to: read-model }
+  - { type: offers, from: screen, to: command }
+  - { type: navigates-to, from: screen, to: screen }
+  - { type: belongs-to, from: event, to: aggregate }
+  - { type: acts-on, from: command, to: aggregate }
+  - { type: enforces, from: command, to: invariant }
+  - { type: guards, from: invariant, to: aggregate }
+  - { type: sees, from: actor, to: screen }
+  - { type: affects, from: decision, to: "*" }
+  - { type: blocks, from: question, to: "*" }
+
+# Completeness rules, enforced by `eventgraph check`. Every one of these was
+# hardened against real applications rather than derived on paper.
+rules:
+  # Bootstrap — without these an empty graph reports "nothing to do" and the
+  # plan-forward loop has nothing to pull on.
+  - graph-empty
+  - no-actor
+  - no-aggregate
+  # Structure
+  - event-no-consumer
+  - event-uncaused
+  - event-orphan
+  - read-model-unused
+  - command-no-actor
+  - command-no-effect
+  - screen-empty
+  - policy-incomplete
+  - invariant-unenforced
+  - aggregate-no-events
+  - aggregate-no-lifecycle-end
+  - actor-idle
+  - open-question-blocking
+  # UX — structural only; nothing about visual design, copy or layout
+  - command-no-feedback
+  - screen-unreachable
+  - screen-dead-end
+  - no-entry-screen
+  - actor-cannot-issue
