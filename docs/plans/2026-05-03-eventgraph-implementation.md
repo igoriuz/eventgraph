@@ -1,5 +1,9 @@
 # eventgraph Implementation Plan
 
+> **Status: superseded.** Everything below was implemented; the checkboxes were
+> never ticked. See `README.md` for what the tool actually does today, including
+> the completeness rules, projections and verify, which this plan predates.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build an agent-first architecture modeling tool that stores software architecture as a typed directed graph (YAML files), queryable via CLI and MCP plugin, with a static HTML viewer.
