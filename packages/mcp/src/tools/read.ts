@@ -7,6 +7,9 @@ import {
   analyzeImpact,
   validateGraph,
   loadPreset,
+  checkGraph,
+  type Finding,
+  type Lane,
 } from '@eventgraph/core';
 
 export interface ReadToolsApi {
@@ -22,6 +25,17 @@ export interface ReadToolsApi {
   eventgraph_get_node(input: { nodeId: string }): Promise<{ node: GraphNode | null }>;
   eventgraph_list_contexts(input: Record<string, never>): Promise<{ contexts: string[] }>;
   eventgraph_validate(input: Record<string, never>): Promise<{ valid: boolean; errors: Array<{ type: string; message: string }> }>;
+  eventgraph_check(input: { lane?: Lane; limit?: number }): Promise<{
+    ok: boolean;
+    nodes: number;
+    remaining: number;
+    findings: Finding[];
+  }>;
+}
+
+/** Repo-relative presets directory, shared by validate and check. */
+function presetsDirPath(): string {
+  return join(import.meta.dirname, '..', '..', '..', '..', 'presets');
 }
 
 export function createReadTools(graph: EventGraph, config: ProjectConfig, _projectDir: string): ReadToolsApi {
@@ -61,9 +75,25 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
       return { contexts: graph.getContexts() };
     },
 
+    /**
+     * Completeness gaps, most pressing first. This is the plan-forward loop an
+     * agent drives: check what is missing, fill one gap, check again. `limit`
+     * turns it into "what should I do next".
+     */
+    async eventgraph_check({ lane, limit } = {}) {
+      const preset = loadPreset(config.preset, presetsDirPath());
+      const all = checkGraph(graph, preset, { lane });
+      const findings = limit && limit > 0 ? all.slice(0, limit) : all;
+      return {
+        ok: !all.some(f => f.severity === 'error'),
+        nodes: graph.getAllNodes().length,
+        remaining: all.length,
+        findings,
+      };
+    },
+
     async eventgraph_validate() {
-      const presetsDir = join(import.meta.dirname, '..', '..', '..', '..', 'presets');
-      const preset = loadPreset(config.preset, presetsDir);
+      const preset = loadPreset(config.preset, presetsDirPath());
       const errors = validateGraph(graph, preset);
       return {
         valid: errors.length === 0,

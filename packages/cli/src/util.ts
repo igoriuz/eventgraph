@@ -1,4 +1,10 @@
 import { findProjectDir, loadProject, type ProjectConfig, type EventGraph } from '@eventgraph/core';
+import { join } from 'node:path';
+
+/** Repo-relative presets directory, shared by validate and check. */
+export function presetsDir(): string {
+  return join(import.meta.dirname, '..', '..', '..', 'presets');
+}
 
 export interface LoadedProject {
   projectDir: string;

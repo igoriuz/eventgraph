@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import { loadPreset, validateGraph } from '@eventgraph/core';
-import { loadOrFail } from '../util.js';
-import { join } from 'node:path';
+import { loadOrFail, presetsDir } from '../util.js';
 
 export function registerValidateCommand(program: Command): void {
   program
@@ -10,9 +9,7 @@ export function registerValidateCommand(program: Command): void {
     .action(() => {
       const { config, graph } = loadOrFail();
 
-      const presetsDir = join(import.meta.dirname, '..', '..', '..', '..', 'presets');
-
-      const preset = loadPreset(config.preset, presetsDir);
+      const preset = loadPreset(config.preset, presetsDir());
       const errors = validateGraph(graph, preset);
 
       if (errors.length === 0) {

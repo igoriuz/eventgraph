@@ -47,6 +47,13 @@ export interface PresetDefinition {
   nodeTypes: string[];
   edgeTypes: string[];
   edgeRules: EdgeRule[];
+  /**
+   * Completeness rules to enforce, by id. Empty or absent means shape-only
+   * validation: a rule like "this event has no consumer" only carries meaning
+   * once the preset fixes what an event and a consumer are, so generic graphs
+   * cannot have them.
+   */
+  rules?: string[];
 }
 
 export const EVENT_MODELING_NODE_TYPES = [

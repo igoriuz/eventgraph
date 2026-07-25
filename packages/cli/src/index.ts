@@ -8,6 +8,7 @@ import { registerViewCommand } from './commands/view.js';
 import { registerListCommand } from './commands/list.js';
 import { registerAddCommand } from './commands/add.js';
 import { registerConnectCommand } from './commands/connect.js';
+import { registerCheckCommand } from './commands/check.js';
 
 const program = new Command();
 
@@ -24,5 +25,6 @@ registerViewCommand(program);
 registerListCommand(program);
 registerAddCommand(program);
 registerConnectCommand(program);
+registerCheckCommand(program);
 
 program.parse();
