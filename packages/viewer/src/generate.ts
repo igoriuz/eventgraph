@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { EventGraph } from '@eventgraph/core';
-import { computeFullLayout } from './layout.js';
+import { computeFullLayout, NODE_WIDTH, SWIMLANE_HEIGHT } from './layout.js';
 
 export function generateViewerHtml(graph: EventGraph, projectName: string): string {
   const layout = computeFullLayout(graph);
@@ -10,7 +10,6 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
   const contexts = graph.getContexts();
 
   const NODE_LEFT_OFFSET = 100;
-  const SWIMLANE_HEIGHT = 80;
 
   const nodeElements = layout.nodes.map(n => {
     const left = NODE_LEFT_OFFSET + n.x;
@@ -20,7 +19,7 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
 
   const nodePositions = new Map(layout.nodes.map(n => [
     n.id,
-    { x: NODE_LEFT_OFFSET + n.x + 80, y: 24 + n.y + 16 },
+    { x: NODE_LEFT_OFFSET + n.x + NODE_WIDTH / 2, y: 24 + n.y + 18 },
   ]));
 
   const edgeLines = layout.edges.map(e => {
@@ -29,7 +28,7 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
     if (!from || !to) return '';
     const fromNode = layout.nodes.find(n => n.id === e.from);
     const toNode = layout.nodes.find(n => n.id === e.to);
-    return `<line class="edge-line" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" data-from-context="${fromNode?.context}" data-to-context="${toNode?.context}" />`;
+    return `<line class="edge-line" x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" data-from="${e.from}" data-to="${e.to}" data-type="${e.type}" data-from-context="${fromNode?.context}" data-to-context="${toNode?.context}" />`;
   }).join('\n');
 
   const filterButtons = [
@@ -54,7 +53,7 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
 </head>
 <body>
 <div class="toolbar">
-  <div class="filters">${filterButtons}</div>
+  <div class="filters">${filterButtons}<span id="focus-hint"></span></div>
   <div class="legend">
     <span class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Command</span>
     <span class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span>Event</span>
