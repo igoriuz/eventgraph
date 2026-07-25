@@ -1,6 +1,8 @@
 {
   "name": "@eventgraph/core",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "Igor Kazhdan",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,5 +16,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

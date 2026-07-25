@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import {
   type EventGraph,
   type ProjectConfig,
@@ -37,9 +38,15 @@ export interface ReadToolsApi {
   }>;
 }
 
-/** Repo-relative presets directory, shared by validate and check. */
+/** See the CLI's presetsDir: bundled beside the output once published. */
 function presetsDirPath(): string {
-  return join(import.meta.dirname, '..', '..', '..', '..', 'presets');
+  const candidates = [
+    join(import.meta.dirname, 'presets'),
+    join(import.meta.dirname, '..', 'presets'),
+    join(import.meta.dirname, '..', '..', 'presets'),
+    join(import.meta.dirname, '..', '..', '..', '..', 'presets'),
+  ];
+  return candidates.find(existsSync) ?? candidates[candidates.length - 1]!;
 }
 
 export function createReadTools(graph: EventGraph, config: ProjectConfig, _projectDir: string): ReadToolsApi {

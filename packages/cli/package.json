@@ -1,12 +1,14 @@
 {
   "name": "eventgraph",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "Igor Kazhdan",
   "type": "module",
   "bin": {
     "eventgraph": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && rm -rf dist/presets && cp -r ../../presets dist/presets",
     "test": "vitest run"
   },
   "dependencies": {
@@ -18,5 +20,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

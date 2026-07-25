@@ -1,6 +1,8 @@
 {
   "name": "@eventgraph/viewer",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "Igor Kazhdan",
   "type": "module",
   "main": "dist/generate.js",
   "types": "dist/generate.d.ts",
@@ -20,5 +22,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

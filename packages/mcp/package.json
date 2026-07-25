@@ -1,6 +1,8 @@
 {
   "name": "@eventgraph/mcp",
   "version": "0.1.0",
+  "license": "MIT",
+  "author": "Igor Kazhdan",
   "type": "module",
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
@@ -8,7 +10,7 @@
     "eventgraph-mcp": "dist/server.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && rm -rf dist/presets && cp -r ../../presets dist/presets",
     "test": "vitest run"
   },
   "dependencies": {
@@ -20,5 +22,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
 }

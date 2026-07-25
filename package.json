@@ -1,6 +1,8 @@
 {
   "name": "eventgraph-monorepo",
   "private": true,
+  "license": "MIT",
+  "author": "Igor Kazhdan",
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "pnpm -r run build",

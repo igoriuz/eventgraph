@@ -1,9 +1,22 @@
 import { findProjectDir, loadProject, type ProjectConfig, type EventGraph } from '@eventgraph/core';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 
-/** Repo-relative presets directory, shared by validate and check. */
+/**
+ * Locates the bundled presets.
+ *
+ * In the monorepo they sit at the repository root; in a published package they
+ * are copied next to the compiled output. Resolving the repo layout only worked
+ * as long as nobody installed the package, where "../../../presets" points
+ * outside it entirely.
+ */
 export function presetsDir(): string {
-  return join(import.meta.dirname, '..', '..', '..', 'presets');
+  const candidates = [
+    join(import.meta.dirname, 'presets'),
+    join(import.meta.dirname, '..', 'presets'),
+    join(import.meta.dirname, '..', '..', '..', 'presets'),
+  ];
+  return candidates.find(existsSync) ?? candidates[candidates.length - 1]!;
 }
 
 export interface LoadedProject {
