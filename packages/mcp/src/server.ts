@@ -77,6 +77,26 @@ server.tool(
 );
 
 server.tool(
+  'eventgraph_slice',
+  'Rebuild the swimlane around one event: who triggers it, which command produces it, what projects from it and where that is shown. Prefer this over reading the whole graph.',
+  { eventId: z.string().describe('Event id, qualified or bare') },
+  async (input) => {
+    const result = await readTools.eventgraph_slice(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  'eventgraph_lifecycle',
+  "List an aggregate's events, the one that ends its life last",
+  { aggregateId: z.string().describe('Aggregate id, qualified or bare') },
+  async (input) => {
+    const result = await readTools.eventgraph_lifecycle(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
   'eventgraph_check',
   'Find completeness gaps in the graph — what is missing, not just whether the shape is valid. Use limit to get the most pressing gaps to work on next.',
   {

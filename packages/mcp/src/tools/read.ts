@@ -8,6 +8,8 @@ import {
   validateGraph,
   loadPreset,
   checkGraph,
+  slice,
+  lifecycle,
   type Finding,
   type Lane,
 } from '@eventgraph/core';
@@ -25,6 +27,8 @@ export interface ReadToolsApi {
   eventgraph_get_node(input: { nodeId: string }): Promise<{ node: GraphNode | null }>;
   eventgraph_list_contexts(input: Record<string, never>): Promise<{ contexts: string[] }>;
   eventgraph_validate(input: Record<string, never>): Promise<{ valid: boolean; errors: Array<{ type: string; message: string }> }>;
+  eventgraph_slice(input: { eventId: string }): Promise<Record<string, unknown>>;
+  eventgraph_lifecycle(input: { aggregateId: string }): Promise<{ events: Array<{ id: string; label: string; endsLifecycle: boolean }> }>;
   eventgraph_check(input: { lane?: Lane; limit?: number }): Promise<{
     ok: boolean;
     nodes: number;
@@ -73,6 +77,36 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
 
     async eventgraph_list_contexts() {
       return { contexts: graph.getContexts() };
+    },
+
+    /**
+     * The swimlane around one event, rebuilt on demand. Asking for a part of
+     * the model beats rendering all of it, which stops being readable within a
+     * few dozen nodes.
+     */
+    async eventgraph_slice({ eventId }) {
+      const s = slice(graph, eventId);
+      const ids = (nodes: GraphNode[]) => nodes.map(n => `${n.context}.${n.id}`);
+      return {
+        event: `${s.event.context}.${s.event.id}`,
+        actors: ids(s.actors),
+        screens: ids(s.screens),
+        causedBy: ids(s.causedBy),
+        aggregate: s.aggregate ? `${s.aggregate.context}.${s.aggregate.id}` : null,
+        readModels: ids(s.readModels),
+        policies: ids(s.policies),
+        shownOn: ids(s.shownOn),
+      };
+    },
+
+    async eventgraph_lifecycle({ aggregateId }) {
+      return {
+        events: lifecycle(graph, aggregateId).map(e => ({
+          id: `${e.context}.${e.id}`,
+          label: e.label,
+          endsLifecycle: e.data?.ends_lifecycle === true,
+        })),
+      };
     },
 
     /**

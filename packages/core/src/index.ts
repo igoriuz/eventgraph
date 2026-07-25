@@ -20,6 +20,15 @@ export {
 export { EventGraph } from './graph.js';
 export { loadProject, loadContext, loadConfig, loadContextIntoGraph, findProjectDir } from './parser.js';
 export { QueryEngine } from './query.js';
+export {
+  slice,
+  lifecycle,
+  subgraph,
+  sliceGraph,
+  neighbourhood,
+  resolveId,
+  type Slice,
+} from './projections.js';
 export { analyzeImpact, type ImpactResult, type ImpactOptions } from './impact.js';
 export { validateGraph, loadPreset, type ValidationError } from './validate.js';
 export {
