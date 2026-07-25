@@ -78,3 +78,6 @@ rules:
   - screen-dead-end
   - no-entry-screen
   - actor-cannot-issue
+  # Platform — silent unless eventgraph.yaml declares platforms
+  - platform-drift
+  - platform-unknown

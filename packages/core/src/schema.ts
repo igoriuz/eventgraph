@@ -34,6 +34,11 @@ export interface ProjectConfig {
     write: 'prompt' | 'auto' | 'locked';
   };
   contexts: string[];
+  /**
+   * Set when one product ships as several independent codebases. Nodes may
+   * then key implemented_by by platform, and a missing entry counts as drift.
+   */
+  platforms?: string[];
 }
 
 export interface EdgeRule {

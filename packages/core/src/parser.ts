@@ -44,6 +44,7 @@ export function loadContextIntoGraph(graph: EventGraph, model: ContextModel): vo
 export function loadProject(projectDir: string): { config: ProjectConfig; graph: EventGraph } {
   const config = loadConfig(projectDir);
   const graph = new EventGraph();
+  graph.platforms = config.platforms ?? [];
 
   for (const contextName of config.contexts) {
     const modelPath = join(projectDir, 'contexts', contextName, 'model.yaml');

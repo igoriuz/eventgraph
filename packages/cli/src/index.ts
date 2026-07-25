@@ -10,6 +10,7 @@ import { registerAddCommand } from './commands/add.js';
 import { registerConnectCommand } from './commands/connect.js';
 import { registerCheckCommand } from './commands/check.js';
 import { registerSliceCommand } from './commands/slice.js';
+import { registerVerifyCommand } from './commands/verify.js';
 
 const program = new Command();
 
@@ -28,5 +29,6 @@ registerAddCommand(program);
 registerConnectCommand(program);
 registerCheckCommand(program);
 registerSliceCommand(program);
+registerVerifyCommand(program);
 
 program.parse();

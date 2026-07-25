@@ -2,6 +2,12 @@ import type { GraphNode, GraphEdge } from './schema.js';
 import { qualifiedId } from './schema.js';
 
 export class EventGraph {
+  /**
+   * Platforms this product ships as, from the project config. Empty for a
+   * single-codebase project, which is what switches the drift rules off.
+   */
+  platforms: string[] = [];
+
   private nodes = new Map<string, GraphNode>();
   private outgoing = new Map<string, GraphEdge[]>();
   private incoming = new Map<string, GraphEdge[]>();

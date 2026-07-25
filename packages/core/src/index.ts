@@ -32,6 +32,13 @@ export {
 export { analyzeImpact, type ImpactResult, type ImpactOptions } from './impact.js';
 export { validateGraph, loadPreset, type ValidationError } from './validate.js';
 export {
+  verifyImplementations,
+  pointersOf,
+  pointerPath,
+  type VerifyIssue,
+  type VerifyReport,
+} from './verify.js';
+export {
   checkGraph,
   resolveRules,
   unknownRuleIds,
