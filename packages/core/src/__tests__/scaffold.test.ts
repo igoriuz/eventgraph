@@ -143,6 +143,69 @@ describe('screen extraction', () => {
   });
 });
 
+describe('navigation beyond the call site', () => {
+  const TABS = [
+    src('app/(tabs)/_layout.tsx', `import TutorialOverlay from '../../src/components/TutorialOverlay'
+      export default () => <Tabs><Tabs.Screen name="week" /><Tabs.Screen name="month" /><TutorialOverlay /></Tabs>`),
+    src('app/(tabs)/week.tsx', `export default function Week() {}`),
+    src('app/(tabs)/month.tsx', `router.push({ pathname: '/day-detail' })`),
+    src('app/day-detail.tsx', `router.back()`),
+    src('src/components/TutorialOverlay.tsx', `router.replace('/(tabs)/week')`),
+  ];
+
+  it('makes the screens under a tab layout mutually reachable', () => {
+    const { model } = scaffold(TABS, { only: ['screens'] });
+    expect(model.edges).toContainEqual({ from: 'week', to: 'month', type: 'navigates-to' });
+    expect(model.edges).toContainEqual({ from: 'month', to: 'week', type: 'navigates-to' });
+  });
+
+  it('attributes a layout component to the screens beneath it', () => {
+    const { model, notes } = scaffold(TABS, { only: ['screens'] });
+    expect(model.edges).toContainEqual({ from: 'month', to: 'week', type: 'navigates-to' });
+    expect(notes.join(' ')).toMatch(/reached through a rendered component/);
+  });
+
+  it('follows a screen into the components it renders', () => {
+    const model = scaffold(
+      [
+        src('app/home.tsx', `import Card from '../src/Card'`),
+        src('app/detail.tsx', `export default function D() {}`),
+        src('src/Card.tsx', `router.push('/detail')`),
+      ],
+      { only: ['screens'] }
+    ).model;
+    expect(model.edges).toContainEqual({ from: 'home', to: 'detail', type: 'navigates-to' });
+  });
+
+  it('does not hand one screen its neighbour navigation', () => {
+    const model = scaffold(
+      [
+        src('app/a.tsx', `import b from './b'`),
+        src('app/b.tsx', `router.push('/c')`),
+        src('app/c.tsx', `export default function C() {}`),
+      ],
+      { only: ['screens'] }
+    ).model;
+    expect(model.edges).toEqual([{ from: 'b', to: 'c', type: 'navigates-to' }]);
+  });
+
+  it('reports a route computed from data rather than dropping it', () => {
+    const { notes } = scaffold(
+      [src('app/settings.tsx', `router.push(row.route as any)`), src('app/other.tsx', `//`)],
+      { only: ['screens'] }
+    );
+    expect(notes.join(' ')).toMatch(/1 navigation\(s\) target a computed route/);
+  });
+
+  it('reports a literal target with no route file', () => {
+    const { notes } = scaffold(
+      [src('app/index.tsx', `router.push('/nowhere')`), src('app/other.tsx', `//`)],
+      { only: ['screens'] }
+    );
+    expect(notes.join(' ')).toMatch(/point at a path with no route file/);
+  });
+});
+
 describe('aggregate extraction', () => {
   it('takes one aggregate per table, singularised', () => {
     const { model } = scaffold([SCHEMA], { only: ['aggregates'] });
@@ -152,6 +215,16 @@ describe('aggregate extraction', () => {
   it('leaves out infrastructure tables', () => {
     const { notes } = scaffold([SCHEMA], { only: ['aggregates'] });
     expect(notes.join(' ')).toMatch(/1 table\(s\) skipped as infrastructure/);
+  });
+
+  it('reads raw DDL, which a local-first app carries instead of an ORM', () => {
+    const raw = src(
+      'src/db/schema.ts',
+      "export const SCHEMA_SQL = `CREATE TABLE IF NOT EXISTS work_days (id TEXT);\nCREATE TABLE settings (k TEXT);`"
+    );
+    const { model, notes } = scaffold([raw], { only: ['aggregates'] });
+    expect(model.nodes.map(n => n.id)).toEqual(['work-day', 'setting']);
+    expect(notes.join(' ')).toMatch(/via sql/);
   });
 
   it('says the names are guessed rather than known', () => {

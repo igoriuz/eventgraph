@@ -1,4 +1,5 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
+import { extractNavigation } from './navigation.js';
 import { IdSet, kebab, titleise, type ScaffoldSource } from './sources.js';
 
 /**
@@ -17,12 +18,6 @@ const HTTP_ROUTE =
 
 /** Route files in an `app/` tree: expo-router, Next's app router, and friends. */
 const APP_ROUTE_FILE = /(?:^|\/)app\/(.+)\.(tsx|jsx|ts|js)$/;
-
-const NAVIGATION = [
-  /\brouter\s*\.\s*(?:push|replace|navigate)\s*\(\s*(['"`])([^'"`]*)\1/g,
-  /\brouter\s*\.\s*(?:push|replace)\s*\(\s*\{\s*pathname\s*:\s*(['"`])([^'"`]*)\1/g,
-  /\bhref\s*=\s*(?:\{\s*)?(['"`])([^'"`]*)\1/g,
-];
 
 export interface SurfaceResult {
   nodes: ContextModelNode[];
@@ -193,48 +188,8 @@ export function extractScreens(sources: ScaffoldSource[], ids: IdSet): SurfaceRe
 
   notes.push(`${nodes.length} file-routed screen(s); "${entry.id}" guessed as the entry point`);
 
-  return { nodes, edges: extractNavigation(sources, owner, routes), notes, routes };
-}
+  const navigation = extractNavigation(sources, owner, routes);
+  notes.push(...navigation.notes);
 
-function extractNavigation(
-  sources: ScaffoldSource[],
-  owner: Map<string, string>,
-  routes: Map<string, string>,
-): GraphEdge[] {
-  const edges: GraphEdge[] = [];
-  const seen = new Set<string>();
-
-  for (const source of sources) {
-    const from = owner.get(source.path);
-    if (!from) continue;
-
-    for (const pattern of NAVIGATION) {
-      pattern.lastIndex = 0;
-      let match: RegExpExecArray | null;
-      while ((match = pattern.exec(source.content)) !== null) {
-        const target = normaliseTarget(match[2]!);
-        const to = target === null ? null : (routes.get(target) ?? null);
-        if (to === null || to === from) continue;
-
-        const key = `${from}|${to}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        edges.push({ from, to, type: 'navigates-to' });
-      }
-    }
-  }
-  return edges;
-}
-
-/** Strips groups, query strings and interpolation to a comparable route path. */
-function normaliseTarget(raw: string): string | null {
-  if (!raw.startsWith('/')) return null;
-  const path = raw.split('?')[0]!.split('#')[0]!;
-  const cleaned = path
-    .split('/')
-    .map(s => s.replace(/^\((.*)\)$/, '$1'))
-    .filter(Boolean)
-    .filter(s => !s.includes('$'));
-  const joined = '/' + cleaned.join('/');
-  return joined.replace(/\/index$/, '') || '/';
+  return { nodes, edges: navigation.edges, notes, routes };
 }

@@ -46,7 +46,6 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     model.edges.push(...screens.edges);
     notes.push(...screens.notes);
     counts.screens = screens.nodes.length;
-    if (screens.edges.length > 0) notes.push(`${screens.edges.length} navigation edge(s)`);
   }
 
   if (only.includes('endpoints')) {

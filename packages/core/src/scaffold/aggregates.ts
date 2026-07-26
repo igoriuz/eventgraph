@@ -19,6 +19,10 @@ const PATTERNS: Array<{ tool: string; pattern: RegExp; group: number }> = [
   { tool: 'typeorm', pattern: /@Entity\s*\([^)]*\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/g, group: 1 },
   // Sequelize: sequelize.define('User', …)
   { tool: 'sequelize', pattern: /\.define\s*\(\s*['"`](\w+)['"`]/g, group: 1 },
+  // Raw DDL, however it is embedded: CREATE TABLE IF NOT EXISTS work_days (
+  // Local-first apps often carry their schema as a SQL string with no ORM at
+  // all, which made every one of them look like it had no aggregates.
+  { tool: 'sql', pattern: /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["'`\[]?(\w+)["'`\]]?\s*\(/gi, group: 1 },
 ];
 
 /**
