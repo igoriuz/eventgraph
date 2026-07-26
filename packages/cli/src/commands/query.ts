@@ -10,7 +10,14 @@ export function registerQueryCommand(program: Command): void {
     .action((expression) => {
       const { graph } = loadOrFail();
       const engine = new QueryEngine(graph);
-      const results = engine.query(expression);
+
+      let results;
+      try {
+        results = engine.query(expression);
+      } catch (error) {
+        console.error(`Error: ${(error as Error).message}`);
+        process.exit(2);
+      }
 
       if (results.length === 0) {
         console.log('No matching nodes found.');

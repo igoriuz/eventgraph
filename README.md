@@ -27,16 +27,18 @@ qualified ones (`app.placed`).
 ```yaml
 context: app
 nodes:
-  - id: place-order
-    type: command
-    label: Place Order
-    data:
-      status: implemented
-      implemented_by: [src/orders/place.ts]
+  customer:     { type: actor }
+  place-order:  { type: command, src: src/orders/place.ts }
+  order-placed: { type: event, src: src/orders/place.ts, terminal: nothing reacts yet }
 edges:
-  - { from: app.customer, to: app.place-order, type: issues }
-  - { from: app.place-order, to: app.order-placed, type: produces }
+  issues:   { customer: [place-order] }
+  produces: { place-order: [order-placed] }
 ```
+
+A node is `type`, an optional `label` (derived from the id when absent), an
+optional `src` pointing at real code, and then whatever semantic flags apply.
+Naming `src` is what makes a node implemented, so there is no separate `status`
+line to keep in sync. Edges group by type, then by source.
 
 Edges are first-class and typed, and the preset decides which type may connect
 which — a command that "produces" an actor fails validation rather than quietly
@@ -45,8 +47,10 @@ producing a nonsense graph.
 ## Commands
 
 ```
-eventgraph init                     scaffold a project
-eventgraph add / connect            write nodes and edges
+eventgraph init --yes               scaffold a project, no prompts
+eventgraph apply                    merge a model from a file or stdin
+eventgraph add / connect            write one node or edge
+eventgraph migrate                  rewrite older contexts in the compact form
 eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
@@ -140,6 +144,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `failure` | event | records a refusal rather than a success |
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
 | `consistency` | read-model | `immediate` or `eventual` — whether a reader sees its own write |
+| `entry` | screen | where the app opens; reachability is measured from here |
 
 ## Backends
 
@@ -210,6 +215,33 @@ A missing or empty entry is drift. A flat list still means "not
 platform-specific", so shared domain nodes never report. This is the one check
 no linter or test can perform from inside a single repository, because the
 information lives between them.
+
+## Writing a model
+
+Describing an application one `add` at a time takes hundreds of calls, so the
+bulk path is a document:
+
+```
+eventgraph apply model.yaml         merge it in
+eventgraph apply -                  the same, from stdin
+eventgraph apply - --dry-run        what would change
+eventgraph apply - --replace        replace the named contexts wholesale
+```
+
+Several contexts can arrive in one input, separated by `---`, and a context the
+input names but the project does not have is created and registered. The merged
+result is validated *before* anything is written, so a batch with one bad edge
+leaves the project exactly as it was rather than half-applied.
+
+Single edits still work and now reach the whole vocabulary:
+
+```
+eventgraph add screen orders-api --set kind=endpoint --src src/api.ts
+eventgraph connect orders-api place-order --type offers
+```
+
+Edits go through the YAML document tree, so the comments around a change
+survive it.
 
 ## MCP
 

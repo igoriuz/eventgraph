@@ -18,7 +18,24 @@ export {
 } from './schema.js';
 
 export { EventGraph } from './graph.js';
-export { loadProject, loadContext, loadConfig, loadContextIntoGraph, findProjectDir } from './parser.js';
+export {
+  loadProject,
+  loadContext,
+  loadConfig,
+  loadContextIntoGraph,
+  readContextModel,
+  findProjectDir,
+} from './parser.js';
+export {
+  parseContextModel,
+  stringifyContextModel,
+  isCompactModel,
+  nodeToCompact,
+  editContextDocument,
+  setNodeInDocument,
+  addEdgeToDocument,
+  removeNodeFromDocument,
+} from './model-file.js';
 export { QueryEngine } from './query.js';
 export {
   slice,
@@ -51,4 +68,11 @@ export {
   type Rule,
   type Severity,
 } from './rules/index.js';
-export { addNodeToContext, addEdgeToContext, removeNodeFromContext, generateYamlDiff, type DiffChanges } from './writer.js';
+export {
+  addNodeToContext,
+  addEdgeToContext,
+  removeNodeFromContext,
+  rewriteContextCompact,
+  generateYamlDiff,
+  type DiffChanges,
+} from './writer.js';

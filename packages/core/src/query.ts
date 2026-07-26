@@ -10,6 +10,8 @@ interface QueryFilter {
   text?: string;
 }
 
+const KNOWN_FILTERS = ['type:', 'context:', 'downstream:', 'upstream:', 'path:'];
+
 export class QueryEngine {
   constructor(private graph: EventGraph) {}
 
@@ -61,6 +63,16 @@ export class QueryEngine {
     const parts = expr.trim().split(/\s+/);
 
     for (const part of parts) {
+      // A token shaped like a filter but naming no known one used to fall
+      // through to free-text search, so a typo returned "no matches" — the
+      // same answer as a correct query with nothing to find.
+      const looksLikeFilter = /^[a-z][a-z-]*:/.exec(part);
+      if (looksLikeFilter && !KNOWN_FILTERS.some(f => part.startsWith(f))) {
+        throw new Error(
+          `unknown filter "${looksLikeFilter[0]}" — known filters are ${KNOWN_FILTERS.join(', ')}`
+        );
+      }
+
       if (part.startsWith('type:')) {
         filter.type = part.substring(5);
       } else if (part.startsWith('context:')) {

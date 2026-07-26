@@ -23,10 +23,8 @@ contexts:
   writeFileSync(join(egDir, 'contexts', 'payments', 'model.yaml'), `
 context: payments
 nodes:
-  - id: place-order
-    type: command
-    label: Place Order
-edges: []
+  place-order: { type: command }
+edges: {}
 `);
   return egDir;
 }
@@ -56,7 +54,7 @@ describe('MCP write tools', () => {
 
     const content = readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8');
     const model = parseYaml(content);
-    expect(model.nodes).toHaveLength(2);
+    expect(Object.keys(model.nodes)).toEqual(['place-order', 'order-placed']);
   });
 
   it('returns diff in prompt mode', async () => {
