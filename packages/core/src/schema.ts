@@ -39,6 +39,12 @@ export interface ProjectConfig {
    * then key implemented_by by platform, and a missing entry counts as drift.
    */
   platforms?: string[];
+  /**
+   * Forces the backend lane on. Only needed for a headless service that
+   * declares no surface at all — otherwise an endpoint, consumer or job among
+   * the screens is signal enough, and an app model never opts in by accident.
+   */
+  backend?: boolean;
 }
 
 export interface EdgeRule {

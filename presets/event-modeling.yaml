@@ -78,6 +78,13 @@ rules:
   - screen-dead-end
   - no-entry-screen
   - actor-cannot-issue
+  # Backend — silent unless the model declares a backend surface
+  - endpoint-anonymous
+  - policy-not-idempotent
+  - policy-spans-aggregates
+  - read-model-consistency-unstated
+  - command-no-rejection
+  - failure-silenced
   # Platform — silent unless eventgraph.yaml declares platforms
   - platform-drift
   - platform-unknown

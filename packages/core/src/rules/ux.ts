@@ -1,6 +1,6 @@
 import type { EventGraph } from '../graph.js';
 import type { GraphNode } from '../schema.js';
-import { defineRule, finding, flag, hasFlag, idOf, sources, targets } from './kit.js';
+import { defineRule, finding, flag, hasFlag, idOf, isNavigable, kindOf, OBSERVABLE_KINDS, sources, targets } from './kit.js';
 
 /**
  * Structural UX rules. Nothing here is about visual design, copy or layout —
@@ -9,9 +9,6 @@ import { defineRule, finding, flag, hasFlag, idOf, sources, targets } from './ki
  */
 
 const BURIED_DEPTH = 3;
-
-/** A screen is navigable unless it is a notification or widget. */
-const isNavigable = (n: GraphNode) => (flag<string>(n, 'kind') ?? 'screen') === 'screen';
 
 /** Navigable screens reachable from an entry screen, mapped to hop count. */
 function reachable(graph: EventGraph): Map<string, number> {
@@ -87,8 +84,11 @@ defineRule(
           const rm = g.getNode(rmId);
           if (!rm) continue;
           for (const surface of sources(g, rm, 'reads', 'screen')) {
-            // Notifications and widgets arrive unprompted, so navigability
-            // says nothing about whether the user will see them.
+            // A consumer or a job runs unattended, so routing an outcome there
+            // is not feedback — nobody is on the other end of it.
+            if (!OBSERVABLE_KINDS.includes(kindOf(surface))) continue;
+            // Notifications, widgets and endpoint responses arrive unprompted,
+            // so navigability says nothing about whether they will be seen.
             if (isNavigable(surface) && anyEntry && !depths.has(idOf(surface))) continue;
             const seenBy = sources(g, surface, 'sees', 'actor').map(idOf);
             if (seenBy.length === 0 || seenBy.some(a => audience.has(a))) return false;

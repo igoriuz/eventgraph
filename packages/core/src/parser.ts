@@ -45,6 +45,7 @@ export function loadProject(projectDir: string): { config: ProjectConfig; graph:
   const config = loadConfig(projectDir);
   const graph = new EventGraph();
   graph.platforms = config.platforms ?? [];
+  graph.backend = config.backend ?? false;
 
   for (const contextName of config.contexts) {
     const modelPath = join(projectDir, 'contexts', contextName, 'model.yaml');

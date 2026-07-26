@@ -3,7 +3,7 @@ import type { GraphNode } from '../schema.js';
 import { qualifiedId } from '../schema.js';
 
 export type Severity = 'error' | 'warn';
-export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform';
+export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend';
 
 export interface Finding {
   rule: string;
@@ -92,3 +92,27 @@ export function hasFlag(node: GraphNode, key: string): boolean {
   const value = flag(node, key);
   return value === true || (typeof value === 'string' && value.length > 0);
 }
+
+// --- surface kinds ---------------------------------------------------------
+
+/**
+ * A `screen` is really the outside edge of the system: where an actor touches
+ * it and where feedback lands. In an app that edge is a view; in a backend it
+ * is an HTTP endpoint, a queue consumer or a scheduled worker. Same position
+ * in the graph, so it stays one node type discriminated by `data.kind`.
+ */
+export const SURFACE_KINDS = ['screen', 'notification', 'widget', 'endpoint', 'consumer', 'job'] as const;
+
+/** Surfaces that exist in a backend rather than in front of a human. */
+export const BACKEND_KINDS: readonly string[] = ['endpoint', 'consumer', 'job'];
+
+/**
+ * Surfaces on which an actor can actually observe an outcome. A consumer or a
+ * job runs unattended, so routing feedback there means nobody sees it.
+ */
+export const OBSERVABLE_KINDS: readonly string[] = ['screen', 'notification', 'widget', 'endpoint'];
+
+export const kindOf = (node: GraphNode): string => flag<string>(node, 'kind') ?? 'screen';
+
+/** Only a plain screen is navigated to; every other kind arrives on its own. */
+export const isNavigable = (node: GraphNode): boolean => kindOf(node) === 'screen';

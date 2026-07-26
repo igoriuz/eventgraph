@@ -87,7 +87,7 @@ vocabulary ("this event has no consumer" means nothing without a definition of
 event), so they are opt-in per preset via a `rules:` key. A preset without one
 keeps shape-only validation.
 
-Rules run in four lanes; `check --lane <lane>` narrows to one.
+Rules run in five lanes; `check --lane <lane>` narrows to one.
 
 **bootstrap** — an empty graph must not report success, or the plan-forward loop
 has nothing to pull on: no nodes at all, no actor, no aggregate.
@@ -110,6 +110,15 @@ not graph problems.
 - a command buried more than three navigations deep
 - a screen offering an actor a command they may not issue
 
+**backend** — silent unless the model describes one; see below.
+
+- an endpoint that names no caller
+- a policy not declared idempotent, though redelivery is guaranteed
+- one reaction writing across several aggregates, which cannot be atomic
+- a projection that does not state whether reads are immediate or eventual
+- a command upholding an invariant but modelling no rejection
+- a rejection silenced by `terminal`
+
 **platform** — see below.
 
 ### Saying "yes, deliberately"
@@ -124,9 +133,49 @@ node's `data` and each one that silences a finding demands a reason:
 | `transient: <reason>` | event | no aggregate owns it because no state survives it, e.g. a generated file |
 | `immortal` | aggregate | genuinely never ends |
 | `detail` | screen | a lightbox; having no action and no way onward is the point |
-| `kind` | screen | `notification` or `widget` — reaches the user without being navigated to |
+| `kind` | screen | which surface this is; only `screen` is navigated to |
+| `public: <reason>` | screen | an endpoint deliberately callable without a named caller |
 | `triggered_by` | command | issued by a scheduler or by a screen appearing |
 | `external: <reason>` | command | hands off to a system surface, so no outcome is observable |
+| `failure` | event | records a refusal rather than a success |
+| `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
+| `consistency` | read-model | `immediate` or `eventual` — whether a reader sees its own write |
+
+## Backends
+
+The core vocabulary is backend vocabulary to begin with — command, event,
+aggregate, invariant and policy all come from there. The only app-shaped node
+is `screen`, and a screen is really *the outside edge of the system*: where an
+actor touches it and where feedback lands. In a backend that edge is an HTTP
+endpoint, a queue consumer or a scheduled worker, so it stays one node type
+discriminated by `data.kind`:
+
+```yaml
+- id: orders-api
+  type: screen
+  label: POST /orders
+  data:
+    kind: endpoint
+```
+
+Backend kinds are never navigated to, so reachability, entry and dead-end rules
+skip them. Of the three only `endpoint` answers its caller, so only it counts as
+feedback — routing an outcome to a `consumer` or a `job` means nobody sees it,
+and `command-no-feedback` still fires.
+
+The lane switches itself on as soon as the model declares a backend surface. A
+headless service with no inbound surface at all says so in `eventgraph.yaml`:
+
+```yaml
+backend: true
+```
+
+Nothing else opts in, so adding the lane cannot start reporting on app models.
+
+For several services, the platform lane doubles as contract-drift detection:
+declare `platforms: [orders, billing]` and a node implemented in one service but
+not the other reports — the same "information lives between the repositories"
+problem as iOS versus Android.
 
 ## Drift between graph and code
 

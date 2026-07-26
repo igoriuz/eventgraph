@@ -69,7 +69,7 @@ describe('preset wiring', () => {
     for (const rule of ruleCatalog()) {
       expect(rule.id).toBeTruthy();
       expect(rule.about.length).toBeGreaterThan(20);
-      expect(['bootstrap', 'structure', 'ux', 'platform']).toContain(rule.lane);
+      expect(['bootstrap', 'structure', 'ux', 'backend', 'platform']).toContain(rule.lane);
     }
   });
 });
