@@ -19,6 +19,8 @@ const PATTERNS: Array<{ tool: string; pattern: RegExp; group: number }> = [
   { tool: 'typeorm', pattern: /@Entity\s*\([^)]*\)\s*(?:export\s+)?(?:abstract\s+)?class\s+(\w+)/g, group: 1 },
   // Sequelize: sequelize.define('User', …)
   { tool: 'sequelize', pattern: /\.define\s*\(\s*['"`](\w+)['"`]/g, group: 1 },
+  // Drift: class Playlists extends Table
+  { tool: 'drift', pattern: /\bclass\s+(\w+)\s+extends\s+Table\b/g, group: 1 },
   // Raw DDL, however it is embedded: CREATE TABLE IF NOT EXISTS work_days (
   // Local-first apps often carry their schema as a SQL string with no ORM at
   // all, which made every one of them look like it had no aggregates.

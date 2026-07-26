@@ -22,8 +22,9 @@ const SKIP_DIRS = new Set([
   '__snapshots__',
 ]);
 
-const SOURCE_EXT = /\.(tsx?|jsx?|mjs|cjs|prisma)$/;
-const TEST_FILE = /(^|[./-])(test|spec)\.[tj]sx?$|__tests__|\.stories\.[tj]sx?$/;
+const SOURCE_EXT = /\.(tsx?|jsx?|mjs|cjs|prisma|dart)$/;
+// Generated Dart is enormous and describes nothing the source does not.
+const TEST_FILE = /(^|[./-])(test|spec)\.[tj]sx?$|__tests__|\.stories\.[tj]sx?$|\.(g|freezed|gr)\.dart$/;
 
 /** Reads the files worth scanning under a root, skipping build output and tests. */
 export function collectSources(root: string, limit = 5000): ScaffoldSource[] {

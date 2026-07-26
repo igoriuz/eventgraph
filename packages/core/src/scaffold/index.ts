@@ -1,5 +1,6 @@
 import type { ContextModel } from '../schema.js';
 import { extractAggregates } from './aggregates.js';
+import { extractDart } from './dart.js';
 import { extractEndpoints, extractScreens } from './surfaces.js';
 import { IdSet, type ScaffoldSource } from './sources.js';
 
@@ -46,6 +47,14 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     model.edges.push(...screens.edges);
     notes.push(...screens.notes);
     counts.screens = screens.nodes.length;
+
+    // A Flutter app declares its routes in a table rather than in the file
+    // tree, so nothing above finds them.
+    const flutter = extractDart(sources, ids);
+    model.nodes.push(...flutter.nodes);
+    model.edges.push(...flutter.edges);
+    notes.push(...flutter.notes);
+    counts.screens += flutter.nodes.length;
   }
 
   if (only.includes('endpoints')) {
