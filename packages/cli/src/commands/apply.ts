@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, readSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseAllDocuments, stringify as stringifyYaml } from 'yaml';
 import {
@@ -33,7 +33,45 @@ import { presetsDir } from '../util.js';
 
 function readInput(file: string | undefined): string {
   if (file && file !== '-') return readFileSync(file, 'utf-8');
-  return readFileSync(0, 'utf-8');
+  return readStdin();
+}
+
+/**
+ * Reads stdin to the end.
+ *
+ * `readFileSync(0)` looks like the obvious way and fails with EAGAIN the
+ * moment stdin is a pipe rather than a file — which is every use of the
+ * documented `eventgraph scaffold | eventgraph apply -`. A pipe hands over
+ * whatever has been written so far, so the read has to be retried until the
+ * writer closes it.
+ */
+function readStdin(): string {
+  const chunks: Buffer[] = [];
+  const buffer = Buffer.alloc(64 * 1024);
+
+  for (;;) {
+    let read: number;
+    try {
+      read = readSync(0, buffer, 0, buffer.length, null);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'EAGAIN') {
+        // Nothing buffered yet; yield rather than spin the CPU.
+        sleep(5);
+        continue;
+      }
+      if (code === 'EOF') break;
+      throw error;
+    }
+    if (read === 0) break;
+    chunks.push(Buffer.from(buffer.subarray(0, read)));
+  }
+
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
+function sleep(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function mergeNodes(existing: ContextModelNode[], incoming: ContextModelNode[]): {
