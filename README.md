@@ -51,6 +51,7 @@ eventgraph init --yes               scaffold a project, no prompts
 eventgraph apply                    merge a model from a file or stdin
 eventgraph add / connect            write one node or edge
 eventgraph migrate                  rewrite older contexts in the compact form
+eventgraph scaffold                 extract a partial model from source
 eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
@@ -215,6 +216,29 @@ A missing or empty entry is drift. A flat list still means "not
 platform-specific", so shared domain nodes never report. This is the one check
 no linter or test can perform from inside a single repository, because the
 information lives between them.
+
+## Starting from code
+
+Transcribing an existing application by hand is the expensive part, and most of
+it is mechanical:
+
+```
+eventgraph scaffold --root ../ --context app | eventgraph apply -
+```
+
+It reads HTTP route registrations into endpoints, file-routed screens and the
+navigation between them, and ORM table declarations into candidate aggregates.
+A route registration binds a handler and a client call does not, which is how
+a repository holding both tiers avoids counting every endpoint twice.
+
+Commands, events, policies and invariants are deliberately *not* guessed. Those
+are the modelling, and a graph that invented them would look finished while
+being wrong — which is worse than one that is obviously partial. What comes out
+is a skeleton with `check` pointing at everything still missing.
+
+The document goes to stdout and the notes to stderr, so it is worth reading the
+middle before piping it: the entry screen, the aggregate names and whether each
+table really owns state are all guesses.
 
 ## Writing a model
 

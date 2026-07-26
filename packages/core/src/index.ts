@@ -27,6 +27,15 @@ export {
   findProjectDir,
 } from './parser.js';
 export {
+  scaffold,
+  collectSources,
+  EXTRACTORS,
+  type Extractor,
+  type ScaffoldSource,
+  type ScaffoldOptions,
+  type ScaffoldReport,
+} from './scaffold/index.js';
+export {
   parseContextModel,
   stringifyContextModel,
   isCompactModel,

@@ -13,6 +13,7 @@ import { registerSliceCommand } from './commands/slice.js';
 import { registerVerifyCommand } from './commands/verify.js';
 import { registerApplyCommand } from './commands/apply.js';
 import { registerMigrateCommand } from './commands/migrate.js';
+import { registerScaffoldCommand } from './commands/scaffold.js';
 
 const program = new Command();
 
@@ -34,5 +35,6 @@ registerSliceCommand(program);
 registerVerifyCommand(program);
 registerApplyCommand(program);
 registerMigrateCommand(program);
+registerScaffoldCommand(program);
 
 program.parse();
