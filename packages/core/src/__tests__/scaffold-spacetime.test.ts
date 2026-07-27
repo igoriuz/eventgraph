@@ -240,6 +240,43 @@ describe('spacetime scaffold', () => {
     expect(targets(model, 'lobby-view', 'offers')).toEqual(['kill-encounter']);
   });
 
+  it('does not mistake a parenthesised constant for a function', () => {
+    const { model } = scaffold([
+      SCHEMA,
+      src(
+        'server/src/index.ts',
+        `
+        const TOTAL = (2 + 3);
+        function unrelated(ctx) {
+          ctx.db.encounter.insert({ id: 0n });
+        }
+        export const touch_nothing = spacetimedb.reducer({}, (ctx) => {
+          TOTAL(ctx);
+        });
+      `
+      ),
+    ]);
+
+    // Taking the next `{` as the body would give TOTAL the body of `unrelated`.
+    expect(model.edges.filter(e => e.from === 'touch-nothing')).toEqual([]);
+  });
+
+  it('terminates on mutually recursive helpers', () => {
+    const { model } = scaffold([
+      SCHEMA,
+      src(
+        'server/src/index.ts',
+        `
+        function a(ctx) { b(ctx); }
+        function b(ctx) { a(ctx); ctx.db.encounter.insert({ id: 0n }); }
+        export const go = spacetimedb.reducer({}, (ctx) => { a(ctx); });
+      `
+      ),
+    ]);
+
+    expect(targets(model, 'go', 'acts-on')).toEqual(['encounter']);
+  });
+
   it('stays silent on a codebase with no module', () => {
     const { model, counts } = scaffold([APP, HOME]);
     expect(counts.domain).toBe(0);
@@ -283,6 +320,34 @@ describe('react-router scaffold', () => {
 
     // navigate('/lobby/ABC') against the route '/lobby/:code'.
     expect(targets(model, 'home', 'navigates-to')).toEqual(['lobby-view']);
+  });
+
+  it('runs alongside file routing rather than instead of it', () => {
+    const { model } = scaffold([
+      src('app/index.tsx', `export default function Home() { return null; }`),
+      src('src/App.tsx', `<Routes><Route path="/admin" element={<Admin />} /></Routes>`),
+      src('src/Admin.tsx', `export default function Admin() { return null; }`),
+    ]);
+
+    // An app can be part file-routed and part table-routed; skipping this pass
+    // whenever the file tree yielded anything dropped that half of it.
+    expect(model.nodes.filter(n => n.type === 'screen').map(n => n.id).sort()).toEqual([
+      'admin',
+      'entry',
+    ]);
+  });
+
+  it('leaves a route to the pass that already claimed its component', () => {
+    const { model } = scaffold([
+      src('app/settings.tsx', `export default function Settings() { return null; }`),
+      src(
+        'src/App.tsx',
+        `import Settings from '../app/settings';
+         <Routes><Route path="/settings" element={<Settings />} /></Routes>`
+      ),
+    ]);
+
+    expect(model.nodes.filter(n => n.type === 'screen')).toHaveLength(1);
   });
 
   it('skips a nested route whose path is relative to a parent', () => {

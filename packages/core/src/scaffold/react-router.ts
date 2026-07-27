@@ -25,6 +25,9 @@ const LINK_TO = /\bto\s*=\s*(?:["']([^"']+)["']|\{\s*[`'"]([^`'"]+)[`'"])/g;
 
 const IMPORT = /\bimport\s+(?:(\w+)|\{([^}]*)\})\s*(?:,\s*\{([^}]*)\}\s*)?from\s+['"]([^'"]+)['"]/g;
 
+/** How far to follow relative imports when attributing a file to a screen. */
+export const IMPORT_DEPTH = 4;
+
 export interface ReactRouterResult {
   nodes: ContextModelNode[];
   edges: GraphEdge[];
@@ -92,6 +95,51 @@ export function importedNames(source: ScaffoldSource, files: Set<string>): Map<s
     }
   }
   return named;
+}
+
+/**
+ * Which screens reach each file through relative imports.
+ *
+ * Almost nothing interesting sits in the routed file itself — a `navigate()`
+ * call, a `useTable` subscription and a command call all live in components and
+ * hooks. Crediting each to every screen that imports it is what connects those
+ * edges to the screens they actually belong to; without it the whole lane looks
+ * empty. The cost is that a component shared by four screens gives its edge to
+ * all four, which is why the extractors say so in a note.
+ */
+export function screenReach(
+  sources: ScaffoldSource[],
+  owner: Map<string, string>,
+  depth = IMPORT_DEPTH
+): Map<string, Set<string>> {
+  const byPath = new Map(sources.map(s => [s.path, s]));
+  const files = new Set(sources.map(s => s.path));
+  const reach = new Map<string, Set<string>>();
+
+  for (const [file, screenId] of owner) {
+    const seen = new Set<string>([file]);
+    let frontier = [file];
+
+    for (let level = 0; level < depth && frontier.length > 0; level++) {
+      const next: string[] = [];
+      for (const current of frontier) {
+        const source = byPath.get(current);
+        if (!source) continue;
+        for (const target of new Set(importedNames(source, files).values())) {
+          if (seen.has(target)) continue;
+          seen.add(target);
+          next.push(target);
+        }
+      }
+      frontier = next;
+    }
+
+    for (const reached of seen) {
+      if (!reach.has(reached)) reach.set(reached, new Set());
+      reach.get(reached)!.add(screenId);
+    }
+  }
+  return reach;
 }
 
 // --- routes ----------------------------------------------------------------
@@ -178,7 +226,11 @@ function matchRoute(target: string, routes: Map<string, string>): string | null 
   return null;
 }
 
-export function extractReactRouter(sources: ScaffoldSource[], ids: IdSet): ReactRouterResult {
+export function extractReactRouter(
+  sources: ScaffoldSource[],
+  ids: IdSet,
+  claimed: Set<string> = new Set()
+): ReactRouterResult {
   const files = new Set(sources.map(s => s.path));
 
   // The router file is whichever one declares routes; there is usually one.
@@ -207,6 +259,7 @@ export function extractReactRouter(sources: ScaffoldSource[], ids: IdSet): React
       // The component's own file, not the router's. A route whose component is
       // defined inline or imported from a package has nowhere better to point.
       const file = imports.get(route.component);
+      if (file && claimed.has(file)) continue;
       if (!file) unresolved++;
 
       const id = screenIdFor(path, route.component, ids);
@@ -247,46 +300,14 @@ export function extractReactRouter(sources: ScaffoldSource[], ids: IdSet): React
 
 // --- navigation between screens --------------------------------------------
 
-/**
- * Attributes a `navigate()` call to the screen it happens on.
- *
- * Most calls live in a component rather than in the routed file itself, so a
- * component's navigation is credited to every screen that reaches it through
- * relative imports. Without that the whole UX lane looks like it has no edges.
- */
+/** Attributes a `navigate()` call to the screen it happens on. */
 function extractRouterNavigation(
   sources: ScaffoldSource[],
   owner: Map<string, string>,
   routes: Map<string, string>,
-  files: Set<string>
+  _files: Set<string>
 ): { edges: GraphEdge[]; navNotes: string[] } {
-  const byPath = new Map(sources.map(s => [s.path, s]));
-  const IMPORT_DEPTH = 3;
-
-  // Which screens can reach each file, following relative imports.
-  const reachedBy = new Map<string, Set<string>>();
-  for (const [file, screenId] of owner) {
-    const seen = new Set<string>([file]);
-    let frontier = [file];
-    for (let depth = 0; depth <= IMPORT_DEPTH && frontier.length > 0; depth++) {
-      const next: string[] = [];
-      for (const current of frontier) {
-        const source = byPath.get(current);
-        if (!source) continue;
-        for (const target of new Set(importedNames(source, files).values())) {
-          if (seen.has(target)) continue;
-          seen.add(target);
-          next.push(target);
-        }
-      }
-      frontier = next;
-    }
-    for (const reached of seen) {
-      if (!reachedBy.has(reached)) reachedBy.set(reached, new Set());
-      reachedBy.get(reached)!.add(screenId);
-    }
-  }
-
+  const reachedBy = screenReach(sources, owner);
   const edges: GraphEdge[] = [];
   const seenEdge = new Set<string>();
   let dynamic = 0;

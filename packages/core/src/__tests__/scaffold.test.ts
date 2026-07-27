@@ -95,6 +95,35 @@ describe('endpoint extraction', () => {
   it('finds nothing in a file that only calls out', () => {
     expect(scaffold([CLIENT], { only: ['endpoints'] }).model.nodes).toHaveLength(0);
   });
+
+  const labels = (content: string) =>
+    scaffold([{ path: 'server/routes.ts', content }], { only: ['endpoints'] })
+      .model.nodes.map(n => n.label);
+
+  it('binds a handler passed by name, not only one written inline', () => {
+    // The ordinary shape once handlers live in their own module. Requiring an
+    // inline arrow dropped every one of these without a word.
+    expect(labels(`router.get('/health', healthHandler);`)).toEqual(['GET /health']);
+    expect(labels(`app.get('/orders', { schema }, listOrders);`)).toEqual(['GET /orders']);
+  });
+
+  it('reads a route that follows a statement with no semicolon', () => {
+    expect(labels(`const a = 1\napp.get('/things', listThings)\n`)).toEqual(['GET /things']);
+  });
+
+  it('is not derailed by an apostrophe in a comment', () => {
+    expect(labels(`app.get('/profile', /* the user's profile */ (req) => 1);`)).toEqual([
+      'GET /profile',
+    ]);
+    expect(labels(`// don't cache\napp.get('/health', healthHandler);`)).toEqual(['GET /health']);
+  });
+
+  it('still reads a call feeding a value as a client, however it is written', () => {
+    expect(labels(`const res = await api.get('/trips');`)).toEqual([]);
+    expect(labels(`function f() { return api.get('/trips'); }`)).toEqual([]);
+    expect(labels(`const c = { list: () => api.get('/trips') };`)).toEqual([]);
+    expect(labels(`api.post('/auth/signup', { email, password });`)).toEqual([]);
+  });
 });
 
 describe('screen extraction', () => {

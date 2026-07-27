@@ -171,7 +171,8 @@ export class IdSet {
  * enough that the scaffold says so rather than presenting it as a fact.
  */
 export function singularise(name: string): string {
-  if (/(ss|us|is|s s)$/.test(name)) return name;
+  // address, status, analysis — an `s` that was never a plural.
+  if (/(ss|us|is)$/.test(name)) return name;
   if (/ies$/.test(name)) return name.replace(/ies$/, 'y');
   if (/s$/.test(name)) return name.replace(/s$/, '');
   return name;

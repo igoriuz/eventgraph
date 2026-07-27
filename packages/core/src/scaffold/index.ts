@@ -61,16 +61,20 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     notes.push(...flutter.notes);
     counts.screens += flutter.nodes.length;
 
-    // So does a React app using react-router, which is the common case that
-    // file-routing misses entirely.
-    if (counts.screens === 0) {
-      const router = extractReactRouter(sources, ids);
-      model.nodes.push(...router.nodes);
-      model.edges.push(...router.edges);
-      notes.push(...router.notes);
-      counts.screens += router.nodes.length;
-      owner = router.owner;
-    }
+    // So does a React app using react-router, which file-routing misses
+    // entirely. It runs even when the file tree already yielded screens: an app
+    // can be part file-routed and part table-routed, and skipping this pass
+    // whenever anything was found dropped that whole half of it. Routes whose
+    // component is already a screen are left to the pass that claimed them.
+    const claimed = new Set(
+      model.nodes.flatMap(n => (n.data?.implemented_by as string[] | undefined) ?? [])
+    );
+    const router = extractReactRouter(sources, ids, claimed);
+    model.nodes.push(...router.nodes);
+    model.edges.push(...router.edges);
+    notes.push(...router.notes);
+    counts.screens += router.nodes.length;
+    owner = router.owner;
   }
 
   if (only.includes('endpoints')) {

@@ -48,17 +48,47 @@ function endpointId(path: string): string {
  * A route registration binds a handler; a client call does not.
  *
  * `api.post('/auth/signup', { email, password })` and
- * `app.post('/auth/signup', { schema }, async (request, reply) => …)` are the
- * same shape to a pattern match, and counting the first as a surface doubled
- * every endpoint in a repository holding both tiers. Scanning the argument
- * list for a function separates them on what they actually mean.
+ * `app.post('/auth/signup', { schema }, createUser)` are the same shape to a
+ * pattern match, and counting the first as a surface doubles every endpoint in
+ * a repository holding both tiers.
+ *
+ * Looking for an inline function separated them, but only for handlers written
+ * inline: `router.get('/health', healthHandler)` is the ordinary way to declare
+ * a route once the handlers live in their own module, and it was being dropped
+ * silently. Two weaker signals together hold up better than one strong one that
+ * is wrong about the common case:
+ *
+ *   - a registration passes a *callable* after the path — a function, or an
+ *     identifier naming one. `{ email, password }` is a payload, not a handler,
+ *     which is what separates a fire-and-forget client POST from a route;
+ *   - a registration is a statement, a client call is part of an expression —
+ *     it gets returned, awaited, or assigned.
+ *
+ * `api.post('/x', payload)` written as a bare statement still reads as a route.
+ * Nothing in the syntax distinguishes it from `app.post('/x', handler)`, so the
+ * ambiguity is left rather than resolved by guessing at variable names.
  */
-function bindsHandler(content: string, from: number): boolean {
+function bindsHandler(content: string, callStart: number, from: number): boolean {
+  if (!isStatement(content, callStart)) return false;
+
   const limit = Math.min(content.length, from + 4000);
   let depth = 1;
 
   for (let i = from; i < limit; i++) {
     const char = content[i]!;
+
+    if (char === '/' && content[i + 1] === '/') {
+      const end = content.indexOf('\n', i);
+      if (end === -1) return false;
+      i = end;
+      continue;
+    }
+    if (char === '/' && content[i + 1] === '*') {
+      const end = content.indexOf('*/', i + 2);
+      if (end === -1) return false;
+      i = end + 1;
+      continue;
+    }
 
     if (char === '"' || char === "'" || char === '`') {
       const quote = char;
@@ -73,10 +103,84 @@ function bindsHandler(content: string, from: number): boolean {
     else if (char === ')' || char === ']' || char === '}') {
       depth--;
       if (depth === 0) return false;
-    } else if (char === '=' && content[i + 1] === '>') return true;
-    else if (content.startsWith('function', i) && !/\w/.test(content[i - 1] ?? '')) return true;
+    } else if (char === ',' && depth === 1) {
+      if (startsCallable(content, i + 1, limit)) return true;
+    }
   }
   return false;
+}
+
+/** Whether the argument beginning at `from` could be a function. */
+function startsCallable(content: string, from: number, limit: number): boolean {
+  for (let i = from; i < limit; i++) {
+    const char = content[i]!;
+    if (/\s/.test(char)) continue;
+
+    if (char === '/' && content[i + 1] === '/') {
+      const end = content.indexOf('\n', i);
+      if (end === -1) return false;
+      i = end;
+      continue;
+    }
+    if (char === '/' && content[i + 1] === '*') {
+      const end = content.indexOf('*/', i + 2);
+      if (end === -1) return false;
+      i = end + 1;
+      continue;
+    }
+
+    // An object, array, string or number is data. A parenthesis opens an arrow
+    // function's parameters; anything else word-shaped names something.
+    return char === '(' || /[A-Za-z_$]/.test(char);
+  }
+  return false;
+}
+
+/** Operators and keywords that make whatever follows them part of an expression. */
+const FEEDS_A_VALUE = /[,=(&|+[:?!]$|\b(?:return|await|yield|typeof|in|of)$/;
+
+/**
+ * Whether the call beginning at `start` stands alone rather than feeding a
+ * value somewhere.
+ *
+ * Read backwards to the previous real token. A semicolon or a brace ends a
+ * statement outright; so does a newline, as long as the token before it was not
+ * an operator — plenty of code omits semicolons, and treating those calls as
+ * expressions would drop every route in the file.
+ */
+function isStatement(content: string, start: number): boolean {
+  let sawNewline = false;
+
+  for (let i = start - 1; i >= 0; i--) {
+    const char = content[i]!;
+
+    if (char === '\n') {
+      sawNewline = true;
+      continue;
+    }
+    if (/\s/.test(char)) continue;
+
+    // `*/` here means a block comment sits between the call and its context.
+    if (char === '/' && content[i - 1] === '*') {
+      const open = content.lastIndexOf('/*', i - 1);
+      if (open === -1) return true;
+      i = open;
+      continue;
+    }
+
+    // A non-space token on a line that comments out before it is not a token.
+    const lineStart = content.lastIndexOf('\n', i) + 1;
+    const comment = content.slice(lineStart, i).indexOf('//');
+    if (comment !== -1) {
+      sawNewline = true;
+      i = lineStart;
+      continue;
+    }
+
+    if (char === ';' || char === '{' || char === '}') return true;
+    return sawNewline && !FEEDS_A_VALUE.test(content.slice(Math.max(0, i - 7), i + 1));
+  }
+  return true;
 }
 
 export function extractEndpoints(sources: ScaffoldSource[], ids: IdSet): SurfaceResult {
@@ -92,7 +196,7 @@ export function extractEndpoints(sources: ScaffoldSource[], ids: IdSet): Surface
       const method = match[2]!.toUpperCase();
       const path = match[4]!;
 
-      if (!bindsHandler(source.content, HTTP_ROUTE.lastIndex)) {
+      if (!bindsHandler(source.content, match.index, HTTP_ROUTE.lastIndex)) {
         clientCalls++;
         continue;
       }

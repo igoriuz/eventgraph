@@ -1,5 +1,5 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
-import { importedNames } from './react-router.js';
+import { screenReach } from './react-router.js';
 import {
   blockAt,
   IdSet,
@@ -162,9 +162,16 @@ function localFunctions(content: string): Map<string, string> {
   while ((match = LOCAL_FUNCTION.exec(content)) !== null) {
     const name = match[1] ?? match[2]!;
     if (functions.has(name)) continue;
-    const brace = content.indexOf('{', LOCAL_FUNCTION.lastIndex);
-    if (brace === -1) continue;
-    functions.set(name, blockAt(content, brace));
+
+    // The body must follow the parameter list, allowing for a return type and
+    // an arrow. Taking the next `{` anywhere would give `const TOTAL = (2 + 3)`
+    // the body of whatever happened to be declared after it.
+    const params = blockAt(content, LOCAL_FUNCTION.lastIndex - 1);
+    const after = LOCAL_FUNCTION.lastIndex - 1 + params.length;
+    const between = content.slice(after, content.indexOf('{', after) + 1);
+    if (!/^\s*(?::[^{;=]*)?(?:=>\s*)?\{$/.test(between)) continue;
+
+    functions.set(name, blockAt(content, after + between.length - 1));
   }
   return functions;
 }
@@ -228,46 +235,6 @@ function parseReducers(sources: ScaffoldSource[]): Array<Omit<Reducer, 'id'>> {
 }
 
 // --- client ----------------------------------------------------------------
-
-/**
- * Which screens reach each file through relative imports.
- *
- * A subscription almost never sits in the routed file: `useTable` lives in a
- * component or a hook. Crediting it to every screen that imports that component
- * is how the read edges reach the screens that actually show the data.
- */
-function screenReach(
-  sources: ScaffoldSource[],
-  owner: Map<string, string>,
-  depth: number
-): Map<string, Set<string>> {
-  const byPath = new Map(sources.map(s => [s.path, s]));
-  const files = new Set(sources.map(s => s.path));
-  const reach = new Map<string, Set<string>>();
-
-  for (const [file, screenId] of owner) {
-    const seen = new Set<string>([file]);
-    let frontier = [file];
-    for (let level = 0; level < depth && frontier.length > 0; level++) {
-      const next: string[] = [];
-      for (const current of frontier) {
-        const source = byPath.get(current);
-        if (!source) continue;
-        for (const target of new Set(importedNames(source, files).values())) {
-          if (seen.has(target)) continue;
-          seen.add(target);
-          next.push(target);
-        }
-      }
-      frontier = next;
-    }
-    for (const reached of seen) {
-      if (!reach.has(reached)) reach.set(reached, new Set());
-      reach.get(reached)!.add(screenId);
-    }
-  }
-  return reach;
-}
 
 export interface SpacetimeOptions {
   /** Routed file to screen id, from whichever router extractor found them. */
@@ -370,7 +337,7 @@ export function extractSpacetime(
     return { nodes, edges, notes };
   }
 
-  const reach = screenReach(sources, owner, 4);
+  const reach = screenReach(sources, owner);
   const views = new Map<string, string>();
   const seen = new Set<string>();
   let readEdges = 0;
