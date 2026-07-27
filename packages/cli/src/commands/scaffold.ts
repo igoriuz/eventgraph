@@ -51,26 +51,44 @@ export function registerScaffoldCommand(program: Command): void {
 
       if (report.model.nodes.length === 0) {
         console.error(`Scanned ${sources.length} file(s) under ${root} and recognised nothing.`);
-        console.error('Supported: HTTP route registrations, file-routed screens, ORM table declarations.');
+        console.error(
+          'Supported: HTTP route registrations, file-routed and router-table screens,\n' +
+            'ORM table declarations, and modules that declare commands and events outright.'
+        );
         process.exit(1);
       }
 
       // Notes go to stderr so the document on stdout stays pipeable into apply.
       console.error(`Scanned ${sources.length} file(s) under ${root}`);
       for (const note of report.notes) console.error(`  · ${note}`);
-      console.error(
-        '\nCommands, events, policies and invariants are not guessed — they are the modelling.\n' +
-          'Review, then: eventgraph apply -\n'
-      );
+      console.error(`\n${caveat(report.counts.domain > 0)}\nReview, then: eventgraph apply -\n`);
 
-      console.log(header(report.model.context));
+      console.log(header(report.model.context, report.counts.domain > 0));
       console.log(stringifyContextModel(report.model));
     });
 }
 
-function header(context: string): string {
+/**
+ * What was read versus what is still open, which differs by source.
+ *
+ * A module that names its own reducers and events hands over most of the write
+ * model; an HTTP service hands over none of it. Saying the same thing in both
+ * cases would either undersell the first or overstate the second.
+ */
+function caveat(hasDomain: boolean): string {
+  return hasDomain
+    ? 'Commands and events here were read from declarations, not guessed. Policies,\n' +
+        'invariants and actors are still the modelling, as is which aggregate each\n' +
+        'event belongs to.'
+    : 'Commands, events, policies and invariants are not guessed — they are the modelling.';
+}
+
+function header(context: string, hasDomain: boolean): string {
+  const scope = hasDomain
+    ? 'surfaces, navigation, and the commands and events the module declares'
+    : 'surfaces, navigation and aggregates only';
   return [
-    `# Scaffolded from source: surfaces, navigation and aggregates only.`,
+    `# Scaffolded from source: ${scope}.`,
     `# Every node here is a candidate — check the entry screen, the aggregate`,
     `# names, and whether each table really owns state before applying.`,
     `# Context: ${context}`,

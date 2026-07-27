@@ -71,6 +71,58 @@ export function collectSources(root: string, limit = 5000): ScaffoldSource[] {
   return sources.sort((a, b) => a.path.localeCompare(b.path));
 }
 
+/**
+ * The source text of the call or object starting at `open`, brackets balanced.
+ *
+ * Every extractor that reads a declaration spanning lines needs this: a route
+ * table entry, a reducer body, a table declaration.
+ *
+ * Comments are skipped before quotes are, because they are what actually breaks
+ * this. An apostrophe in `// partner's encounter` opens a string that never
+ * closes, and the block then runs to the end of the file — which reads as one
+ * reducer emitting every event in the module rather than as a parse failure.
+ */
+export function blockAt(content: string, open: number): string {
+  const closing: Record<string, string> = { '(': ')', '{': '}', '[': ']' };
+  const opening = content[open];
+  if (!opening || !(opening in closing)) return '';
+  const close = closing[opening]!;
+
+  let depth = 0;
+  for (let i = open; i < content.length; i++) {
+    const char = content[i]!;
+
+    if (char === '/' && content[i + 1] === '/') {
+      const end = content.indexOf('\n', i);
+      if (end === -1) break;
+      i = end;
+      continue;
+    }
+    if (char === '/' && content[i + 1] === '*') {
+      const end = content.indexOf('*/', i + 2);
+      if (end === -1) break;
+      i = end + 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      const quote = char;
+      for (i++; i < content.length; i++) {
+        if (content[i] === '\\') i++;
+        else if (content[i] === quote) break;
+      }
+      continue;
+    }
+
+    if (char === opening) depth++;
+    else if (char === close) {
+      depth--;
+      if (depth === 0) return content.slice(open, i + 1);
+    }
+  }
+  return content.slice(open);
+}
+
 // --- id helpers ------------------------------------------------------------
 
 export function kebab(value: string): string {
@@ -123,6 +175,19 @@ export function singularise(name: string): string {
   if (/ies$/.test(name)) return name.replace(/ies$/, 'y');
   if (/s$/.test(name)) return name.replace(/s$/, '');
   return name;
+}
+
+/**
+ * The inverse, for naming a projection after the rows it holds.
+ *
+ * An aggregate is one encounter and a read-model is the list of them, so the
+ * plural keeps the two apart in one namespace without a `-view` suffix that
+ * would collide with a screen named after the same thing.
+ */
+export function pluralise(name: string): string {
+  if (/(s|x|z|ch|sh)$/.test(name)) return `${name}es`;
+  if (/[^aeiou]y$/.test(name)) return name.replace(/y$/, 'ies');
+  return `${name}s`;
 }
 
 export function titleise(id: string): string {

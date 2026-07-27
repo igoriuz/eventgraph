@@ -253,12 +253,12 @@ describe('scaffold', () => {
 
   it('counts what each extractor contributed', () => {
     const { counts } = scaffold([ROUTES, SCHEMA, ...APP_FILES]);
-    expect(counts).toEqual({ endpoints: 3, screens: 6, aggregates: 3 });
+    expect(counts).toEqual({ endpoints: 3, screens: 6, aggregates: 3, domain: 0 });
   });
 
   it('runs only the extractors asked for', () => {
     const { counts } = scaffold([ROUTES, SCHEMA, ...APP_FILES], { only: ['aggregates'] });
-    expect(counts).toEqual({ endpoints: 0, screens: 0, aggregates: 3 });
+    expect(counts).toEqual({ endpoints: 0, screens: 0, aggregates: 3, domain: 0 });
   });
 });
 

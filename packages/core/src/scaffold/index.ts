@@ -1,13 +1,15 @@
 import type { ContextModel } from '../schema.js';
 import { extractAggregates } from './aggregates.js';
 import { extractDart } from './dart.js';
+import { extractReactRouter } from './react-router.js';
+import { extractSpacetime } from './spacetime.js';
 import { extractEndpoints, extractScreens } from './surfaces.js';
 import { IdSet, type ScaffoldSource } from './sources.js';
 
 export { collectSources, type ScaffoldSource } from './sources.js';
 
-export type Extractor = 'endpoints' | 'screens' | 'aggregates';
-export const EXTRACTORS: Extractor[] = ['endpoints', 'screens', 'aggregates'];
+export type Extractor = 'endpoints' | 'screens' | 'aggregates' | 'domain';
+export const EXTRACTORS: Extractor[] = ['endpoints', 'screens', 'aggregates', 'domain'];
 
 export interface ScaffoldOptions {
   context?: string;
@@ -36,8 +38,11 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
   const ids = new IdSet();
 
   const notes: string[] = [];
-  const counts: Record<Extractor, number> = { endpoints: 0, screens: 0, aggregates: 0 };
+  const counts: Record<Extractor, number> = { endpoints: 0, screens: 0, aggregates: 0, domain: 0 };
   const model: ContextModel = { context, nodes: [], edges: [] };
+
+  /** Routed source file to the screen id it implements, for later extractors. */
+  let owner = new Map<string, string>();
 
   // Screens first: their ids read better unqualified, and endpoints fall back
   // to a method-prefixed id when one is already taken.
@@ -55,6 +60,17 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     model.edges.push(...flutter.edges);
     notes.push(...flutter.notes);
     counts.screens += flutter.nodes.length;
+
+    // So does a React app using react-router, which is the common case that
+    // file-routing misses entirely.
+    if (counts.screens === 0) {
+      const router = extractReactRouter(sources, ids);
+      model.nodes.push(...router.nodes);
+      model.edges.push(...router.edges);
+      notes.push(...router.notes);
+      counts.screens += router.nodes.length;
+      owner = router.owner;
+    }
   }
 
   if (only.includes('endpoints')) {
@@ -69,6 +85,17 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     model.nodes.push(...aggregates.nodes);
     notes.push(...aggregates.notes);
     counts.aggregates = aggregates.nodes.length;
+  }
+
+  // Last: a module that declares its commands and events outright. It reads
+  // tables itself, so it runs after the generic table pass rather than through
+  // it, and it needs the screens to attach subscriptions to.
+  if (only.includes('domain')) {
+    const domain = extractSpacetime(sources, ids, { owner });
+    model.nodes.push(...domain.nodes);
+    model.edges.push(...domain.edges);
+    notes.push(...domain.notes);
+    counts.domain = domain.nodes.length;
   }
 
   return { model, notes, counts };

@@ -226,15 +226,39 @@ it is mechanical:
 eventgraph scaffold --root ../ --context app | eventgraph apply -
 ```
 
-It reads HTTP route registrations into endpoints, file-routed screens and the
-navigation between them, and ORM table declarations into candidate aggregates.
-A route registration binds a handler and a client call does not, which is how
-a repository holding both tiers avoids counting every endpoint twice.
+It reads HTTP route registrations into endpoints, screens and the navigation
+between them, and ORM table declarations into candidate aggregates. Screens are
+found however the framework declares them: in the file tree, in a `GoRoute`
+table, or in a `<Route>` element — and a router names screens without
+implementing any, so `implemented_by` points at the component's own file. A
+route registration binds a handler and a client call does not, which is how a
+repository holding both tiers avoids counting every endpoint twice.
 
 Commands, events, policies and invariants are deliberately *not* guessed. Those
 are the modelling, and a graph that invented them would look finished while
 being wrong — which is worse than one that is obviously partial. What comes out
 is a skeleton with `check` pointing at everything still missing.
+
+### When the module already says it
+
+Some backends write the domain down rather than leaving it to be inferred. A
+SpacetimeDB module is the clear case: a reducer *is* a command, the tables it
+writes are the aggregates it acts on, and where the module keeps an event log
+the inserted row names the event outright. There the scaffold reads the write
+model instead of guessing it, and says so.
+
+Two things make the difference between that working and half-working. Effects
+are followed through module-local helpers, because a codebase that has been
+deduplicated at all has moved its interesting writes out of the reducers — read
+only the reducer body and you miss exactly the paths worth factoring out. And
+on the client the seam is the subscription: `useTable(tables.encounter)` is a
+screen reading a projection and `conn.reducers.logEncounter(…)` is a screen
+offering a command, each credited to every screen importing the component it
+sits in.
+
+Even here the graph stays partial. Actors, policies, invariants, and which
+aggregate an event belongs to are still the modelling — an event row carrying
+three foreign keys does not say which one owns it.
 
 The document goes to stdout and the notes to stderr, so it is worth reading the
 middle before piping it: the entry screen, the aggregate names and whether each

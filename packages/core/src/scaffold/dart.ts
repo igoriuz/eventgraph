@@ -1,5 +1,5 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
-import { IdSet, kebab, titleise, type ScaffoldSource } from './sources.js';
+import { blockAt, IdSet, kebab, titleise, type ScaffoldSource } from './sources.js';
 
 /**
  * Reads a Flutter app's surfaces and navigation.
@@ -38,27 +38,6 @@ export interface DartResult {
   notes: string[];
 }
 
-/** The source text of the call starting at `open`, parentheses balanced. */
-function blockAt(content: string, open: number): string {
-  let depth = 0;
-  for (let i = open; i < content.length; i++) {
-    const char = content[i]!;
-    if (char === '"' || char === "'") {
-      const quote = char;
-      for (i++; i < content.length; i++) {
-        if (content[i] === '\\') i++;
-        else if (content[i] === quote) break;
-      }
-      continue;
-    }
-    if (char === '(') depth++;
-    else if (char === ')') {
-      depth--;
-      if (depth === 0) return content.slice(open, i + 1);
-    }
-  }
-  return content.slice(open);
-}
 
 /** `package:app/core/x.dart` and `../x.dart` both resolve to a repo path. */
 function resolveDartImport(from: string, spec: string, files: Set<string>): string | null {
