@@ -222,6 +222,22 @@ describe('spacetime scaffold', () => {
     expect(node(model, 'lobbies')?.type).toBe('read-model');
   });
 
+  it('marks a table that is not public as unsubscribable', () => {
+    const { model } = scaffold(ALL);
+
+    // rate_limit is declared without `public: true`, unlike lobby next to it.
+    expect(node(model, 'rate-limit')?.data?.subscribable).toBe(false);
+    expect(node(model, 'lobby')?.data?.subscribable).toBeUndefined();
+  });
+
+  it('reports written tables no client may ever subscribe to', () => {
+    const { notes } = scaffold(ALL);
+
+    // A public table nobody reads is a gap; a written private one is a dead
+    // end no client code can fix, so the note names them separately.
+    expect(notes.some(n => n.includes('not public') && n.includes('rate-limit'))).toBe(true);
+  });
+
   it('creates no read-model for a table no client subscribes to', () => {
     const { model } = scaffold(ALL);
     expect(node(model, 'rate-limits')).toBeUndefined();

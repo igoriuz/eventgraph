@@ -148,6 +148,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `entry` | screen | where the app opens; reachability is measured from here |
 | `headless` | actor | a sensor, scheduler or partner system — nothing to look at, so feedback rules do not apply |
 | `retried: <reason>` | actor, command | the sender repeats until it lands, so a refusal is not lost |
+| `subscribable: false` | aggregate | the store refuses readers outright, so nothing written here can ever be displayed |
 
 ### Actors that cannot look
 
@@ -169,6 +170,22 @@ The second is the common answer, because dropping is often correct: retrying a
 domain rejection would never succeed. What the flag buys is that the trade-off
 is written down where the next reader will find it, rather than implied by a
 rule that stayed quiet.
+
+### State nothing may read
+
+`event-no-consumer` says nobody reads this yet. `unreadable-state` says nobody
+*can*, because the store refuses readers: a table declared without a public
+flag, a collection with no read rule, a private field.
+
+The difference matters because the first is a gap someone closes by writing a
+subscription and the second cannot be closed from the reading side at all. Both
+halves get built and both work — the writer writes, the display renders — and
+the display stays empty forever. Nothing in either file is wrong, which is why
+this survives review.
+
+`subscribable: false` on an aggregate turns that into a finding on every
+non-terminal event written there. The SpacetimeDB scaffold sets it from the
+table declaration, since visibility there is a keyword rather than a guess.
 
 ## Backends
 

@@ -267,12 +267,18 @@ export function extractSpacetime(
     if (eventLogs.has(name)) continue;
     const id = ids.claim(singularise(kebab(name)), kebab(name));
     tables.set(kebab(name), { ...table, id });
-    nodes.push({
-      id,
-      type: 'aggregate',
-      label: titleise(id),
-      data: { implemented_by: [table.file], status: 'implemented' },
-    });
+
+    const data: Record<string, unknown> = {
+      implemented_by: [table.file],
+      status: 'implemented',
+    };
+    // Visibility is declared, not inferred: a table without `public` cannot be
+    // subscribed to by any client, whatever the code around it intends. Worth
+    // carrying into the model, because a writer and a reader can both be built
+    // and the reader still never see anything.
+    if (!table.public) data.subscribable = false;
+
+    nodes.push({ id, type: 'aggregate', label: titleise(id), data });
   }
 
   // Commands, one per reducer, with the aggregates they write.
@@ -410,6 +416,24 @@ export function extractSpacetime(
   const unread = [...tables.values()].filter(t => !t.view && t.public);
   if (unread.length > 0) {
     notes.push(`${unread.length} public table(s) no screen subscribes to: ${unread.map(t => t.id).join(', ')}`);
+  }
+
+  // The sharper version of the same question. A public table nobody reads yet
+  // is a gap someone can close with a subscription; a written table that is
+  // not public cannot be read at all, so anything built to display it is dead
+  // on arrival and no amount of client code will fix it.
+  const written = new Set<string>();
+  for (const reducer of reducers.values()) {
+    for (const table of reducer.writes) written.add(kebab(table));
+  }
+  const unreadable = [...tables.entries()]
+    .filter(([key, table]) => !table.public && written.has(key))
+    .map(([, table]) => table.id);
+
+  if (unreadable.length > 0) {
+    notes.push(
+      `${unreadable.length} table(s) written but not public, so no client may subscribe: ${unreadable.join(', ')}`
+    );
   }
 
   return { nodes, edges, notes };

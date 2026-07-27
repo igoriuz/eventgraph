@@ -155,6 +155,33 @@ defineRule(
 
 defineRule(
   {
+    id: 'unreadable-state',
+    severity: 'error',
+    lane: 'ux',
+    about:
+      'State whose store no reader may open. Not "nothing reads it yet" — nothing *can*, because visibility is refused at the store: a table without a public flag, a collection with no read rule, a private field. Both halves get built and tested and neither is wrong on its own; the writer works, the display works, and the display is empty forever. Set data.subscribable to false wherever that is known, and this finds the events written into it that were meant to be seen.',
+  },
+  (g, self) =>
+    g
+      .getNodesByType('aggregate')
+      .filter(a => flag(a, 'subscribable') === false)
+      .flatMap(aggregate =>
+        sources(g, aggregate, 'belongs-to', 'event')
+          // An event nobody was meant to see is not the problem here.
+          .filter(e => !hasFlag(e, 'terminal'))
+          .map(event =>
+            finding(
+              self,
+              event,
+              `written into "${aggregate.label}", which no reader may subscribe to`,
+              'Make the store readable, mark the event terminal with a reason, or drop the write.'
+            )
+          )
+      )
+);
+
+defineRule(
+  {
     id: 'screen-unreachable',
     severity: 'error',
     lane: 'ux',

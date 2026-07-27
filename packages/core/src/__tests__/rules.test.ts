@@ -301,6 +301,73 @@ describe('ux', () => {
   });
 
   /**
+   * The writer works, the display works, and the display is empty forever —
+   * because the store refuses to be read at all. Neither half is wrong on its
+   * own, which is why this survives review.
+   */
+  describe('state no reader may open', () => {
+    function privateStore(): EventGraph {
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'vault',
+        type: 'aggregate',
+        label: 'Vault',
+        data: { immortal: true, subscribable: false },
+      });
+      graph.addNode({ context: 'app', id: 'stored', type: 'event', label: 'Stored' });
+      graph.addNode({ context: 'app', id: 'store', type: 'command', label: 'Store' });
+      graph.addEdge(edge('user', 'issues', 'store'));
+      graph.addEdge(edge('main', 'offers', 'store'));
+      graph.addEdge(edge('store', 'produces', 'stored'));
+      graph.addEdge(edge('store', 'acts-on', 'vault'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      return graph;
+    }
+
+    it('reports an event written where nothing may read it', () => {
+      expect(rulesHit(privateStore())).toContain('unreadable-state');
+    });
+
+    it('names the store rather than only the missing consumer', () => {
+      const found = checkGraph(privateStore(), ALL).filter(f => f.rule === 'unreadable-state');
+      expect(found[0]!.message).toContain('Vault');
+      expect(found[0]!.node).toBe('app.stored');
+    });
+
+    it('accepts an event that was never meant to be seen', () => {
+      const graph = privateStore();
+      graph.removeNode('app.stored');
+      graph.addNode({
+        context: 'app',
+        id: 'stored',
+        type: 'event',
+        label: 'Stored',
+        data: { terminal: 'a shadowban the caller must not detect' },
+      });
+      graph.addEdge(edge('store', 'produces', 'stored'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      expect(rulesHit(graph)).not.toContain('unreadable-state');
+    });
+
+    it('says nothing about a store that simply has no reader yet', () => {
+      const graph = privateStore();
+      graph.removeNode('app.vault');
+      graph.addNode({
+        context: 'app',
+        id: 'vault',
+        type: 'aggregate',
+        label: 'Vault',
+        data: { immortal: true },
+      });
+      graph.addEdge(edge('store', 'acts-on', 'vault'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      // event-no-consumer covers that; it is a gap, not a dead end.
+      expect(rulesHit(graph)).not.toContain('unreadable-state');
+    });
+  });
+
+  /**
    * A push notification reaches the user without ever being navigated to, so
    * it counts as feedback but must be exempt from reachability rules.
    */
