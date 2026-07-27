@@ -56,7 +56,7 @@ eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
 eventgraph check --next 3           the most pressing gaps, in priority order
-eventgraph verify                   do implemented_by pointers still resolve?
+eventgraph verify                   do pointers resolve, do callers know the rejections?
 eventgraph slice <event>            the swimlane around one event
 eventgraph lifecycle <aggregate>    its events, the closing one last
 eventgraph impact <node>            blast radius of a change
@@ -149,6 +149,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `headless` | actor | a sensor, scheduler or partner system — nothing to look at, so feedback rules do not apply |
 | `retried: <reason>` | actor, command | the sender repeats until it lands, so a refusal is not lost |
 | `subscribable: false` | aggregate | the store refuses readers outright, so nothing written here can ever be displayed |
+| `rejects: [CODE, …]` | command | the refusals it can answer with; `verify` holds callers to them |
 
 ### Actors that cannot look
 
@@ -233,6 +234,32 @@ cannot silently describe code that was renamed away. Nodes marked
 ```
 eventgraph verify --root ../          resolve pointers from the repo root
 ```
+
+### Contracts with an end in each codebase
+
+The same command also checks something no linter can reach from inside one
+repository. A command's `rejects` lists the refusals it can answer with; an
+actor's `implemented_by` says where the caller lives. Put together, the graph
+holds both ends of a contract that neither side can see whole:
+
+```yaml
+bridge:        { type: actor, src: [bridge-csharp] }
+report-party:  { type: command, rejects: [INVALID_PARTY_DATA, RATE_LIMITED] }
+```
+
+With an `issues` edge between them, `verify` searches the actor's source for
+each code it can be answered with. A code that appears nowhere is reported. The
+failure this catches is mundane and near-invisible: a service gains a rejection,
+every test on both sides still passes, and the caller quietly treats the new
+code as unknown — dropping the message, or retrying something that will never
+succeed.
+
+Matching is a substring search across whatever languages the callers are
+written in, which is the point: a parser per language is not worth owning to
+find a constant that is missing entirely. Two honest limits follow. A code
+mentioned only in a comment counts as handled, and one assembled at runtime is
+not found. It catches the ordinary case, and a false pass is cheaper than a
+check nobody runs.
 
 ## Two codebases, one product
 

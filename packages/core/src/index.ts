@@ -65,6 +65,11 @@ export {
   type VerifyReport,
 } from './verify.js';
 export {
+  verifyRejectionHandling,
+  type ContractIssue,
+  type ContractReport,
+} from './contract.js';
+export {
   checkGraph,
   resolveRules,
   unknownRuleIds,
