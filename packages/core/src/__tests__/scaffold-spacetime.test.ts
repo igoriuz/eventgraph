@@ -175,6 +175,68 @@ describe('spacetime scaffold', () => {
     expect(targets(model, 'log-encounter', 'produces')).toEqual(['caught']);
   });
 
+  it('finds an event name written as a bare string, not only an enum member', () => {
+    const { model } = scaffold([
+      SCHEMA,
+      src(
+        'server/src/index.ts',
+        `
+        export const revive = spacetimedb.reducer({}, (ctx) => {
+          ctx.db.encounter.id.update({ id: 1n });
+          ctx.db.event.insert({ id: 0n, eventType: 'revived' });
+        });
+      `
+      ),
+    ]);
+
+    // The events that escaped the enum are the ones worth knowing about:
+    // nothing typed is holding them to a name.
+    expect(node(model, 'revived')?.type).toBe('event');
+    expect(targets(model, 'revive', 'produces')).toEqual(['revived']);
+  });
+
+  it('finds both names when one assignment can write either', () => {
+    const { model } = scaffold([
+      SCHEMA,
+      src(
+        'server/src/index.ts',
+        `
+        export const toggle_badge = spacetimedb.reducer({}, (ctx, args) => {
+          ctx.db.encounter.id.update({ id: 1n });
+          ctx.db.event.insert({
+            id: 0n,
+            eventType: args.completed ? 'badge_on' : 'badge_off',
+          });
+        });
+      `
+      ),
+    ]);
+
+    expect(targets(model, 'toggle-badge', 'produces')).toEqual(['badge-off', 'badge-on']);
+  });
+
+  it('does not read a neighbouring string as an event name', () => {
+    const { model } = scaffold([
+      SCHEMA,
+      src(
+        'server/src/index.ts',
+        `
+        export const note = spacetimedb.reducer({}, (ctx) => {
+          ctx.db.encounter.id.update({ id: 1n });
+          ctx.db.event.insert({
+            id: 0n,
+            eventType: 'noted',
+            nickname: 'pikachu',
+            reason: 'because',
+          });
+        });
+      `
+      ),
+    ]);
+
+    expect(targets(model, 'note', 'produces')).toEqual(['noted']);
+  });
+
   it('follows a shared helper to the events and writes it makes', () => {
     const { model } = scaffold(ALL);
 

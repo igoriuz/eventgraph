@@ -34,8 +34,20 @@ const TABLE_PUBLIC = /\bpublic\s*:\s*true\b/;
 
 /** Writes inside a reducer body: `ctx.db.encounter.insert({ … })`. */
 const TABLE_WRITE = /\bctx\s*\.\s*db\s*\.\s*(\w+)(?:\s*\.\s*\w+)?\s*\.\s*(insert|update|delete)\s*\(/g;
-/** `eventType: EventType.CAUGHT`, however the enum is spelled. */
-const EVENT_TYPE = /\beventType\s*:\s*(?:\w+\s*\.\s*)?([A-Z][A-Z0-9_]*)\b/g;
+/**
+ * The value assigned to the event-type column, whatever shape it takes.
+ *
+ * `eventType: EventType.CAUGHT` is the tidy case. The interesting ones are the
+ * strays: a bare `'revived'` that never made it into the enum, or a ternary
+ * writing one of two literals. Matching only the enum reference finds every
+ * event the codebase is disciplined about and misses exactly the ones that
+ * escaped — which are the events worth knowing about, since nothing typed is
+ * holding them to a name.
+ */
+const EVENT_TYPE_VALUE = /\bevent(?:_t|T)ype\s*:\s*([^,\n}]+)/g;
+/** Within that value: an enum member, and separately any string literal. */
+const ENUM_MEMBER = /(?:^|[^\w.])(?:\w+\s*\.\s*)?([A-Z][A-Z0-9_]{2,})\b/g;
+const STRING_LITERAL = /['"`]([a-z][\w-]*)['"`]/g;
 /** A rejection path the command can take: `throw new SenderError('LOBBY_NOT_FOUND')`. */
 const REJECTION = /\bnew\s+\w*Error\s*\(\s*['"`]([A-Z][A-Z0-9_]*)['"`]/g;
 
@@ -128,6 +140,31 @@ interface Effects {
   rejections: Set<string>;
 }
 
+/**
+ * Every event name assigned to the event-type column within `call`.
+ *
+ * One assignment can yield two names — `completed ? 'badge_on' : 'badge_off'`
+ * is one write and two events — so the value is scanned rather than captured.
+ */
+function eventTypesIn(call: string): string[] {
+  const names: string[] = [];
+
+  EVENT_TYPE_VALUE.lastIndex = 0;
+  let assignment: RegExpExecArray | null;
+  while ((assignment = EVENT_TYPE_VALUE.exec(call)) !== null) {
+    const value = assignment[1]!;
+
+    ENUM_MEMBER.lastIndex = 0;
+    let member: RegExpExecArray | null;
+    while ((member = ENUM_MEMBER.exec(value)) !== null) names.push(member[1]!);
+
+    STRING_LITERAL.lastIndex = 0;
+    let literal: RegExpExecArray | null;
+    while ((literal = STRING_LITERAL.exec(value)) !== null) names.push(literal[1]!);
+  }
+  return names;
+}
+
 /** What a stretch of code does, ignoring anything it calls. */
 function directEffects(body: string): Effects {
   const writes = new Set<string>();
@@ -141,9 +178,7 @@ function directEffects(body: string): Effects {
     // The row inserted into the event log names the event; read it from that
     // call alone, so an unrelated insert nearby cannot contribute one.
     const call = blockAt(body, body.indexOf('(', TABLE_WRITE.lastIndex - 1));
-    EVENT_TYPE.lastIndex = 0;
-    let event: RegExpExecArray | null;
-    while ((event = EVENT_TYPE.exec(call)) !== null) events.add(event[1]!);
+    for (const name of eventTypesIn(call)) events.add(name);
   }
 
   REJECTION.lastIndex = 0;
