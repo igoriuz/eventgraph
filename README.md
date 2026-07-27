@@ -146,6 +146,29 @@ node's `data` and each one that silences a finding demands a reason:
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
 | `consistency` | read-model | `immediate` or `eventual` — whether a reader sees its own write |
 | `entry` | screen | where the app opens; reachability is measured from here |
+| `headless` | actor | a sensor, scheduler or partner system — nothing to look at, so feedback rules do not apply |
+| `retried: <reason>` | actor, command | the sender repeats until it lands, so a refusal is not lost |
+
+### Actors that cannot look
+
+`command-no-feedback` asks whether the actor who issued a command can see what
+became of it. That is a real defect for a person and a category error for a
+device: a bridge reading emulator RAM has no screen, so measuring it against
+one reports every command it issues and tells you nothing.
+
+Marking the actor `headless` exempts it and asks the question that does apply
+instead. A refusal a sensor cannot see is data that silently never arrives, so
+`headless-rejection-lost` reports any command it issues that an invariant may
+reject, unless either
+
+- the sender retries — `retried` on the actor or the command, or
+- a `decision` points at the command with `affects`, owning the loss on
+  purpose.
+
+The second is the common answer, because dropping is often correct: retrying a
+domain rejection would never succeed. What the flag buys is that the trade-off
+is written down where the next reader will find it, rather than implied by a
+rule that stayed quiet.
 
 ## Backends
 

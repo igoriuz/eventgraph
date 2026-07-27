@@ -204,6 +204,103 @@ describe('ux', () => {
   });
 
   /**
+   * A sensor has no screen by construction, so measuring it against one
+   * reports every command it issues and tells you nothing. The question that
+   * does apply is whether a refusal it cannot see is lost.
+   */
+  describe('headless actors', () => {
+    /** A device issuing one command that an invariant may refuse. */
+    function sensorGraph(actorData: Record<string, unknown> = { headless: true }): EventGraph {
+      const graph = completeGraph();
+      graph.addNode({ context: 'app', id: 'device', type: 'actor', label: 'Device', data: actorData });
+      graph.addNode({ context: 'app', id: 'report', type: 'command', label: 'Report' });
+      graph.addNode({ context: 'app', id: 'reported', type: 'event', label: 'Reported' });
+      graph.addNode({ context: 'app', id: 'shape', type: 'invariant', label: 'Shape' });
+      graph.addEdge(edge('device', 'issues', 'report'));
+      graph.addEdge(edge('report', 'produces', 'reported'));
+      graph.addEdge(edge('report', 'acts-on', 'thing'));
+      graph.addEdge(edge('report', 'enforces', 'shape'));
+      graph.addEdge(edge('shape', 'guards', 'thing'));
+      graph.addEdge(edge('reported', 'belongs-to', 'thing'));
+      graph.addEdge(edge('reported', 'projects-to', 'status'));
+      return graph;
+    }
+
+    it('does not ask a headless actor to observe an outcome', () => {
+      expect(rulesHit(sensorGraph())).not.toContain('command-no-feedback');
+    });
+
+    it('still asks a human actor to, on the same shape of graph', () => {
+      expect(rulesHit(sensorGraph({}))).toContain('command-no-feedback');
+    });
+
+    it('reports a refusal the sender can neither see nor retry', () => {
+      expect(rulesHit(sensorGraph())).toContain('headless-rejection-lost');
+    });
+
+    it('accepts a sender that retries', () => {
+      expect(rulesHit(sensorGraph({ headless: true, retried: true }))).not.toContain(
+        'headless-rejection-lost'
+      );
+    });
+
+    it('accepts a decision that owns the loss', () => {
+      const graph = sensorGraph();
+      graph.addNode({ context: 'app', id: 'd-drop', type: 'decision', label: 'Dropping is fine' });
+      graph.addEdge(edge('d-drop', 'affects', 'report'));
+      expect(rulesHit(graph)).not.toContain('headless-rejection-lost');
+    });
+
+    it('says nothing about a command no invariant can refuse', () => {
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'device',
+        type: 'actor',
+        label: 'Device',
+        data: { headless: true },
+      });
+      graph.addNode({ context: 'app', id: 'ping', type: 'command', label: 'Ping' });
+      graph.addNode({ context: 'app', id: 'pinged', type: 'event', label: 'Pinged' });
+      graph.addEdge(edge('device', 'issues', 'ping'));
+      graph.addEdge(edge('ping', 'produces', 'pinged'));
+      graph.addEdge(edge('ping', 'acts-on', 'thing'));
+      graph.addEdge(edge('pinged', 'belongs-to', 'thing'));
+      graph.addEdge(edge('pinged', 'projects-to', 'status'));
+
+      expect(rulesHit(graph)).not.toContain('headless-rejection-lost');
+    });
+
+    it('holds a command to the human standard when a person also issues it', () => {
+      // The bridge and the trainer both call log-wild-encounter. The trainer is
+      // still owed feedback, so neither exemption may apply to it.
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'device',
+        type: 'actor',
+        label: 'Device',
+        data: { headless: true },
+      });
+      graph.addNode({ context: 'app', id: 'report', type: 'command', label: 'Report' });
+      graph.addNode({ context: 'app', id: 'reported', type: 'event', label: 'Reported' });
+      graph.addNode({ context: 'app', id: 'shape', type: 'invariant', label: 'Shape' });
+      graph.addEdge(edge('device', 'issues', 'report'));
+      graph.addEdge(edge('user', 'issues', 'report'));
+      graph.addEdge(edge('report', 'produces', 'reported'));
+      graph.addEdge(edge('report', 'acts-on', 'thing'));
+      graph.addEdge(edge('report', 'enforces', 'shape'));
+      graph.addEdge(edge('shape', 'guards', 'thing'));
+      graph.addEdge(edge('reported', 'belongs-to', 'thing'));
+      // Deliberately no projects-to: nothing shows the outcome to anyone.
+
+      const hit = rulesHit(graph);
+      expect(hit).not.toContain('headless-rejection-lost');
+      expect(hit).toContain('command-no-feedback');
+    });
+  });
+
+  /**
    * A push notification reaches the user without ever being navigated to, so
    * it counts as feedback but must be exempt from reachability rules.
    */

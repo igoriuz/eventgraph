@@ -116,3 +116,22 @@ export const kindOf = (node: GraphNode): string => flag<string>(node, 'kind') ??
 
 /** Only a plain screen is navigated to; every other kind arrives on its own. */
 export const isNavigable = (node: GraphNode): boolean => kindOf(node) === 'screen';
+
+// --- actors ----------------------------------------------------------------
+
+/**
+ * An actor with nothing to look at: a sensor, a scheduler, a partner system.
+ *
+ * Feedback rules are written for people — "the user does something and never
+ * learns whether it worked" is a UX defect. A device reporting telemetry has no
+ * screen by definition, so measuring it against one produces a finding for
+ * every command it issues and says nothing. What matters for a headless actor
+ * is not whether it can see the outcome but whether a rejected call is lost.
+ */
+export const isHeadless = (node: GraphNode): boolean => hasFlag(node, 'headless');
+
+/** Whether every actor issuing this command is headless (and at least one does). */
+export function issuedOnlyHeadlessly(graph: EventGraph, command: GraphNode): boolean {
+  const actors = sources(graph, command, 'issues', 'actor');
+  return actors.length > 0 && actors.every(isHeadless);
+}

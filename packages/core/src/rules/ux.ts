@@ -1,6 +1,18 @@
 import type { EventGraph } from '../graph.js';
 import type { GraphNode } from '../schema.js';
-import { defineRule, finding, flag, hasFlag, idOf, isNavigable, kindOf, OBSERVABLE_KINDS, sources, targets } from './kit.js';
+import {
+  defineRule,
+  finding,
+  flag,
+  hasFlag,
+  idOf,
+  isNavigable,
+  issuedOnlyHeadlessly,
+  kindOf,
+  OBSERVABLE_KINDS,
+  sources,
+  targets,
+} from './kit.js';
 
 /**
  * Structural UX rules. Nothing here is about visual design, copy or layout —
@@ -78,6 +90,9 @@ defineRule(
       .filter(c => targets(g, c, 'produces').length > 0)
       // A command whose every outcome is deliberately unobserved is not a bug.
       .filter(c => !targets(g, c, 'produces').every(e => hasFlag(e, 'terminal')))
+      // Nor is one only ever issued by something with nothing to look at.
+      // headless-rejection-lost asks the question that does apply there.
+      .filter(c => !issuedOnlyHeadlessly(g, c))
       .filter(command => {
         const audience = new Set(sources(g, command, 'issues', 'actor').map(idOf));
         for (const rmId of reachableReadModels(g, command)) {
@@ -105,6 +120,37 @@ defineRule(
         )
       );
   }
+);
+
+defineRule(
+  {
+    id: 'headless-rejection-lost',
+    severity: 'error',
+    lane: 'ux',
+    about:
+      'A sensor or scheduler cannot notice a refusal — it has no screen to show one on. So a command it issues that an invariant may reject needs somewhere for that rejection to go: a retry on the sender, or a decision saying the loss is accepted. Without either, the refused call is data that silently never arrives, and the first sign of it is a reader noticing the state is wrong.',
+  },
+  (g, self) =>
+    g
+      .getNodesByType('command')
+      .filter(c => issuedOnlyHeadlessly(g, c))
+      // Only a command that can actually be refused can lose a refusal.
+      .filter(c => targets(g, c, 'enforces').length > 0)
+      .filter(c => {
+        // Either the command or its sender may carry the answer.
+        if (hasFlag(c, 'retried')) return false;
+        if (sources(g, c, 'issues', 'actor').some(a => hasFlag(a, 'retried'))) return false;
+        // Or a decision may own the trade-off explicitly.
+        return sources(g, c, 'affects', 'decision').length === 0;
+      })
+      .map(c =>
+        finding(
+          self,
+          c,
+          'a rejection here is invisible to the sender and lost',
+          'Set data.retried on the command or its actor if the sender retries, or point a decision at it with affects to accept the loss.'
+        )
+      )
 );
 
 defineRule(
