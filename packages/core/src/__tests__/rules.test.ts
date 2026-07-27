@@ -350,6 +350,13 @@ describe('ux', () => {
       expect(rulesHit(graph)).not.toContain('unreadable-state');
     });
 
+    it('does not also report the vaguer diagnosis on the same node', () => {
+      // Both rules match; only the one that explains why should speak.
+      const hit = rulesHit(privateStore());
+      expect(hit).toContain('unreadable-state');
+      expect(hit).not.toContain('event-no-consumer');
+    });
+
     it('says nothing about a store that simply has no reader yet', () => {
       const graph = privateStore();
       graph.removeNode('app.vault');

@@ -67,6 +67,11 @@ defineRule(
       .getNodesByType('event')
       .filter(e => !hasFlag(e, 'terminal'))
       .filter(e => targets(g, e, 'projects-to').length === 0 && targets(g, e, 'triggers').length === 0)
+      // When the store itself refuses readers, unreadable-state says so and
+      // says why. Reporting both puts the vaguer diagnosis next to the exact
+      // one on the same node, and the reader has to work out they are one
+      // problem.
+      .filter(e => !targets(g, e, 'belongs-to').some(a => flag(a, 'subscribable') === false))
       .map(e =>
         finding(
           self,
