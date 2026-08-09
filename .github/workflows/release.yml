@@ -21,6 +21,8 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +63,17 @@ jobs:
           done
           ls -la /tmp/tarballs
           test "$(ls -1 /tmp/tarballs/*.tgz | wc -l)" -eq 4
+
+      # Bootstrap only. A trusted publisher cannot be registered for a package
+      # that does not exist yet, so the first version of each needs a token —
+      # a granular one, scoped to this org, with "Bypass two-factor
+      # authentication" enabled, which is what makes it work for an account
+      # secured with passkeys. Once every package exists and its trusted
+      # publisher is registered on npmjs.com, delete the NPM_TOKEN secret and
+      # this step: OIDC then authenticates with nothing stored anywhere.
+      - name: Authenticate for the first publish
+        if: env.NPM_TOKEN != ''
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
 
       - name: Publish
         run: |
