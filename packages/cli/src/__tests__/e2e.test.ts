@@ -2,13 +2,12 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { execSync } from 'node:child_process';
+import { execCli } from './cli-runner.js';
 
 const TMP = join(tmpdir(), 'eventgraph-e2e-' + Date.now());
-const CLI = join(import.meta.dirname, '..', 'index.ts');
 
 function run(args: string): string {
-  return execSync(`npx tsx ${CLI} ${args}`, { cwd: TMP, encoding: 'utf-8' });
+  return execCli(args, { cwd: TMP });
 }
 
 function setupProject() {

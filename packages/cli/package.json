@@ -1,9 +1,21 @@
 {
   "name": "eventgraph",
   "version": "0.1.0",
+  "description": "Model an application as a queryable graph instead of a diagram nobody maintains, and get told which gaps are structurally impossible to leave open.",
+  "keywords": ["event-modeling", "event-sourcing", "architecture", "ddd", "cqrs", "graph", "cli"],
+  "homepage": "https://igoriuz.github.io/eventgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igoriuz/eventgraph.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/igoriuz/eventgraph/issues",
   "license": "MIT",
   "author": "Igor Kazhdan",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "eventgraph": "dist/index.js"
   },

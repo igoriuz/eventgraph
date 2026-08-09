@@ -1,9 +1,21 @@
 {
   "name": "@eventgraph/core",
   "version": "0.1.0",
+  "description": "The graph model, completeness rules and source scaffolding behind the eventgraph CLI.",
+  "keywords": ["event-modeling", "event-sourcing", "architecture", "ddd", "cqrs", "graph"],
+  "homepage": "https://igoriuz.github.io/eventgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igoriuz/eventgraph.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/igoriuz/eventgraph/issues",
   "license": "MIT",
   "author": "Igor Kazhdan",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

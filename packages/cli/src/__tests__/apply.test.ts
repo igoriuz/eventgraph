@@ -2,12 +2,11 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { execSync } from 'node:child_process';
 import { parse as parseYaml } from 'yaml';
 import { parseContextModel } from '@eventgraph/core';
+import { tryCli, type CliResult } from './cli-runner.js';
 
 const TMP = join(tmpdir(), 'eventgraph-apply-test-' + Date.now());
-const CLI = join(import.meta.dirname, '..', 'index.ts');
 
 function project(): string {
   const dir = join(TMP, 'eventgraph');
@@ -23,24 +22,8 @@ function project(): string {
   return dir;
 }
 
-interface Run {
-  stdout: string;
-  status: number;
-}
-
-function run(args: string, cwd: string, stdin = ''): Run {
-  try {
-    const stdout = execSync(`npx tsx ${CLI} ${args}`, {
-      cwd,
-      input: stdin,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return { stdout, status: 0 };
-  } catch (error) {
-    const e = error as { stdout?: string; stderr?: string; status?: number };
-    return { stdout: (e.stdout ?? '') + (e.stderr ?? ''), status: e.status ?? 1 };
-  }
+function run(args: string, cwd: string, stdin = ''): CliResult {
+  return tryCli(args, { cwd, input: stdin });
 }
 
 function model(dir: string, context: string) {

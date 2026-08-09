@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { execSync } from 'node:child_process';
+import { execCli } from './cli-runner.js';
 
 const TMP = join(tmpdir(), 'eventgraph-cli-test-' + Date.now());
 
@@ -42,8 +42,7 @@ edges:
 }
 
 function runCli(args: string, cwd: string): string {
-  const cliPath = join(import.meta.dirname, '..', 'index.ts');
-  return execSync(`npx tsx ${cliPath} ${args}`, { cwd, encoding: 'utf-8', env: { ...process.env } });
+  return execCli(args, { cwd });
 }
 
 describe('CLI commands', () => {

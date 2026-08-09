@@ -1,9 +1,21 @@
 {
   "name": "@eventgraph/mcp",
   "version": "0.1.0",
+  "description": "MCP server that lets an agent read, check and write an eventgraph model.",
+  "keywords": ["event-modeling", "architecture", "graph", "mcp", "model-context-protocol", "agent"],
+  "homepage": "https://igoriuz.github.io/eventgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igoriuz/eventgraph.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": "https://github.com/igoriuz/eventgraph/issues",
   "license": "MIT",
   "author": "Igor Kazhdan",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "dist/server.js",
   "types": "dist/server.d.ts",
   "bin": {

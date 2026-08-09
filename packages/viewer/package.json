@@ -1,9 +1,21 @@
 {
   "name": "@eventgraph/viewer",
   "version": "0.1.0",
+  "description": "Renders an eventgraph model as a self-contained interactive HTML page.",
+  "keywords": ["event-modeling", "architecture", "graph", "visualisation"],
+  "homepage": "https://igoriuz.github.io/eventgraph",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/igoriuz/eventgraph.git",
+    "directory": "packages/viewer"
+  },
+  "bugs": "https://github.com/igoriuz/eventgraph/issues",
   "license": "MIT",
   "author": "Igor Kazhdan",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "main": "dist/generate.js",
   "types": "dist/generate.d.ts",
   "exports": {
