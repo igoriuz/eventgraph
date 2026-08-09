@@ -1,0 +1,15 @@
+{
+  "name": "eventgraph-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node scripts/build-demo.mjs",
+    "dev": "pnpm demo && astro dev",
+    "build": "pnpm demo && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^7.2.0",
+    "eventgraph": "workspace:*"
+  }
+}

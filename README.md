@@ -12,6 +12,10 @@ Most of the value is not the graph itself. It is `check`: an agent or a human
 writing the model gets told which gaps are structurally impossible to leave
 open, so the loop becomes `check --next` → fill one gap → `check` → repeat.
 
+There is a landing page at <https://igoriuz.github.io/eventgraph> with a live
+viewer and the whole rule catalogue. It is built from `site/`, and its findings
+are regenerated from `site/demo` on every deploy rather than written by hand.
+
 ## Layout
 
 ```

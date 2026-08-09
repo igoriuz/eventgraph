@@ -1,0 +1,206 @@
+/*
+ * The palette is the product's palette. Node-type colours are the exact values
+ * the viewer paints with, so a legend on this page and a legend in the tool
+ * cannot drift. They are used only where they denote a node type — never as
+ * decoration.
+ */
+:root {
+  --command: #3b82f6;
+  --event: #f59e0b;
+  --read-model: #10b981;
+  --policy: #ef4444;
+  --screen: #8b5cf6;
+
+  /* Ground: a whiteboard, not paper — cool and slightly blue. */
+  --wall: #eceef3;
+  --wall-raised: #f8f9fb;
+  --ink: #14161d;
+  --ink-soft: #565d70;
+  --ink-faint: #646b7d;
+  --rule: #d5d8e1;
+  --rule-strong: #b9bec9;
+
+  /* The one accent: the amber of an event sticky, the atom of the discipline. */
+  --accent: #945704;
+  --accent-bright: #e08a1e;
+  /* Severity, used only on findings. */
+  --error: #b8322a;
+
+  --display: 'Martian Mono', ui-monospace, monospace;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  --gutter: clamp(1.25rem, 5vw, 5rem);
+  --measure: 62ch;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A faint grid, the way a modelling wall is ruled. Behind everything, quiet. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(20, 22, 29, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 22, 29, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  margin: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(2rem, 1.1rem + 4.2vw, 4.4rem);
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.05rem + 2vw, 2.5rem);
+}
+
+h3 {
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+}
+
+p {
+  margin: 0 0 1.1em;
+  max-width: var(--measure);
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--mono);
+  font-size: 0.875em;
+}
+
+/* The section shell: a left rail carrying the label, content to its right. */
+.band {
+  padding-inline: var(--gutter);
+  padding-block: clamp(3.5rem, 9vw, 8rem);
+  border-top: 1px solid var(--rule);
+}
+
+.band-inner {
+  max-width: 78rem;
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/*
+ * A grid track defaults to min-content, so one wide descendant — a code block,
+ * a long rule id — would push the whole column past the viewport instead of
+ * scrolling inside itself.
+ */
+.band-inner > * {
+  min-width: 0;
+}
+
+@media (min-width: 60rem) {
+  .band-inner {
+    grid-template-columns: 11rem minmax(0, 1fr);
+  }
+}
+
+/*
+ * The eyebrow names the command or the lane the section is actually about —
+ * it is a pointer into the tool, not a decorative number.
+ */
+.rail {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  color: var(--ink-faint);
+  border-top: 2px solid var(--ink);
+  padding-top: 0.6rem;
+  align-self: start;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.rail b {
+  display: block;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.band-inner h2 {
+  margin-bottom: 1.35rem;
+}
+
+.lede {
+  font-size: clamp(1.0625rem, 1rem + 0.4vw, 1.25rem);
+  color: var(--ink-soft);
+  max-width: var(--measure);
+}
+
+.dim {
+  color: var(--ink-soft);
+}
+
+pre {
+  background: var(--ink);
+  color: #e7e9ef;
+  padding: 1.15rem 1.35rem;
+  border-radius: 3px;
+  overflow-x: auto;
+  line-height: 1.6;
+  margin: 0;
+  tab-size: 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

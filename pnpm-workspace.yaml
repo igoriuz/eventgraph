@@ -1,2 +1,5 @@
 packages:
   - "packages/*"
+  # The landing page. Declared so `pnpm -r run build` builds the CLI before the
+  # site, which needs it to regenerate the demo.
+  - "site"

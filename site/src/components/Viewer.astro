@@ -1,0 +1,72 @@
+---
+const demo = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/demo.html`;
+---
+
+<section class="band">
+  <div class="band-inner">
+    <p class="rail"><b>eventgraph view</b>the graph itself</p>
+    <div>
+      <h2>One file, no server.</h2>
+
+      <p class="lede">
+        The frame below is the unmodified output of <code>eventgraph view</code> for
+        the same model the finding above came from. Click a node to dim
+        everything outside its neighbourhood; press Escape to clear it.
+      </p>
+
+      <div class="frame">
+        <iframe src={demo} title="eventgraph viewer showing the takeaway demo model" loading="lazy"></iframe>
+      </div>
+
+      <p class="under">
+        <a href={demo}>Open it on its own</a> — it is a single self-contained
+        HTML file, which is what makes it reviewable in a pull request.
+      </p>
+
+      <h3 class="head">Don't render everything</h3>
+      <p>
+        A whole-graph picture stops being readable within a few dozen nodes —
+        the same failure that kills a growing swimlane board. So ask for a part,
+        and every view prints how much of the graph it is showing, so a narrowed
+        picture is never mistaken for the whole one.
+      </p>
+      <pre>{`eventgraph view --slice order-placed     the flow around one event
+eventgraph view --focus place-order -d 2  two hops around a node
+eventgraph view --type command,event      one lane at a time`}</pre>
+    </div>
+  </div>
+</section>
+
+<style>
+  .frame {
+    margin-block: 2rem 0.9rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 3px;
+    /* The viewer paints its own dark canvas; match it so there is no flash. */
+    background: #0f0f1a;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(20, 22, 29, 0.04);
+  }
+
+  .frame iframe {
+    display: block;
+    width: 100%;
+    height: min(78vh, 600px);
+    border: 0;
+  }
+
+  .under {
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+    margin-bottom: 3rem;
+  }
+
+  .head {
+    margin-bottom: 0.6rem;
+  }
+
+  pre {
+    font-size: 0.8125rem;
+    margin-top: 1.25rem;
+  }
+</style>

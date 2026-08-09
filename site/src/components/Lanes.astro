@@ -1,0 +1,140 @@
+---
+import rules from '../generated/rules.json';
+
+interface Rule {
+  id: string;
+  lane: string;
+  severity: string;
+  about: string;
+}
+
+/** The lanes in the order `check` runs them, each with what it is asking. */
+const lanes: { id: string; asks: string }[] = [
+  { id: 'bootstrap', asks: 'An empty graph must not report success, or the plan-forward loop has nothing to pull on.' },
+  { id: 'structure', asks: 'Does every node have the connections its own type requires to mean anything?' },
+  { id: 'ux', asks: 'Structural only — nothing about visual design, copy or layout, which are not graph problems.' },
+  { id: 'backend', asks: 'Silent unless the model declares a backend surface, so it cannot start reporting on app models.' },
+  { id: 'platform', asks: 'Silent unless the project declares platforms — then a node built on one but not the other reports.' },
+];
+
+const byLane = (lane: string) => (rules as Rule[]).filter(r => r.lane === lane);
+---
+
+<section class="band">
+  <div class="band-inner">
+    <p class="rail"><b>eventgraph check</b>{rules.length} rules, {lanes.length} lanes</p>
+    <div>
+      <h2>Every rule can be told it is wrong.</h2>
+
+      <p class="lede">
+        A rule with no way to disagree with it becomes noise you learn to skip.
+        So each finding names a flag that silences it — <code>terminal</code>, <code>immortal</code>, <code>headless</code>, <code>detail</code> — and
+        most of those flags demand a reason, which lands in the model where the
+        next reader will find it rather than in someone's memory.
+      </p>
+
+      <p class="lede last">
+        The list below is generated from <code>eventgraph rules</code>. Every
+        one of these was hardened against a real application rather than derived
+        on paper.
+      </p>
+
+      {lanes.map(lane => (
+        <section class="lane">
+          <div class="lane-head">
+            <h3>{lane.id}</h3>
+            <span class="count">{byLane(lane.id).length}</span>
+            <p class="asks">{lane.asks}</p>
+          </div>
+          <dl>
+            {byLane(lane.id).map(rule => (
+              <div class="rule" data-severity={rule.severity}>
+                <dt>{rule.id}</dt>
+                <dd>{rule.about}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .lede.last {
+    margin-bottom: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .lane + .lane {
+    margin-top: 3rem;
+  }
+
+  .lane-head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0 0.75rem;
+    align-items: baseline;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0.65rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .lane-head h3 {
+    font-size: 1.125rem;
+  }
+
+  .count {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+  }
+
+  .asks {
+    grid-column: 1 / -1;
+    font-size: 0.9375rem;
+    color: var(--ink-soft);
+    margin: 0.45rem 0 0;
+    max-width: 68ch;
+  }
+
+  dl {
+    margin: 0;
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .rule {
+    display: grid;
+    gap: 0.15rem 1.25rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--rule-strong);
+  }
+
+  /* Severity is the only thing colour says here. */
+  .rule[data-severity='error'] {
+    border-left-color: var(--error);
+  }
+
+  .rule[data-severity='warn'] {
+    border-left-color: var(--accent-bright);
+  }
+
+  @media (min-width: 56rem) {
+    .rule {
+      grid-template-columns: 17rem minmax(0, 1fr);
+    }
+  }
+
+  dt {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--ink);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--ink-soft);
+    max-width: 72ch;
+  }
+</style>

@@ -1,0 +1,86 @@
+<section class="band">
+  <div class="band-inner">
+    <p class="rail"><b>premise</b>why not a board</p>
+    <div>
+      <h2>A board is a view, not a data structure.</h2>
+
+      <p class="lede stack">
+        Event modelling is right about the shape of a flow — actor, command,
+        event, read-model, screen — and wrong about the storage. A swimlane
+        board holds that shape as a picture, which is why it fragments the
+        moment a cross-cutting concern shows up: the flow you need to see spans
+        four lanes that were laid out for a different question.
+      </p>
+
+      <p>
+        Here the graph is the storage and the board is one projection of it,
+        rebuilt on demand around whatever you ask about. Ask for the swimlane
+        around one event and you get exactly that, assembled from the same nodes
+        that answer every other question.
+      </p>
+
+      <div class="pair">
+        <div>
+          <h3>The model is two kinds of file</h3>
+          <p class="dim small">
+            A project file naming the contexts, and one model file per bounded
+            context. Node ids are unique within a context, so a <code>booking</code> aggregate
+            and a <code>booking</code> screen can coexist.
+          </p>
+        </div>
+        <pre>{`context: app
+nodes:
+  customer:     { type: actor }
+  place-order:  { type: command, src: src/orders/place.ts }
+  order-placed: { type: event, src: src/orders/place.ts }
+edges:
+  issues:   { customer: [place-order] }
+  produces: { place-order: [order-placed] }`}</pre>
+      </div>
+
+      <p class="closing">
+        Naming <code>src</code> is what makes a node implemented, so there is no
+        separate status line to keep in sync — and <code>eventgraph verify</code> checks
+        those pointers still resolve, so
+        the graph cannot quietly describe code that was renamed away.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stack {
+    margin-block: 1.5rem 1.25rem;
+  }
+
+  .pair {
+    display: grid;
+    gap: 1.5rem;
+    margin-block: 2.5rem 2rem;
+    align-items: start;
+  }
+
+  @media (min-width: 48rem) {
+    .pair {
+      grid-template-columns: 15rem minmax(0, 1fr);
+      gap: 2.5rem;
+    }
+  }
+
+  .pair pre {
+    font-size: 0.8125rem;
+  }
+
+  .small {
+    font-size: 0.9375rem;
+  }
+
+  .pair h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .closing {
+    max-width: var(--measure);
+    margin-bottom: 0;
+  }
+</style>

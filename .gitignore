@@ -3,3 +3,10 @@ dist/
 *.tsbuildinfo
 .eventgraph-cache/
 .superpowers/
+
+# Astro's type cache
+.astro/
+
+# Regenerated from site/demo on every site build — never edited by hand.
+site/public/demo.html
+site/src/generated/

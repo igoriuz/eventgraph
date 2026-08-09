@@ -1,0 +1,7 @@
+name: takeaway
+version: 1
+preset: event-modeling
+agent:
+  write: prompt
+contexts:
+  - orders

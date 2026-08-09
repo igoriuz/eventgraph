@@ -1,0 +1,95 @@
+<section class="band" id="start">
+  <div class="band-inner">
+    <p class="rail"><b>quickstart</b>the loop</p>
+    <div>
+      <h2>Start from code you already have.</h2>
+
+      <p class="lede">
+        <code>scaffold</code> reads real source and writes back the part of the
+        model it can prove — screens from file-based routing, endpoints from
+        route registrations, aggregates from table declarations, each node
+        pointing at the file it came from. It never guesses at the parts only a
+        person knows, which is what the rest of the loop is for.
+      </p>
+
+      <pre>{`npm install -g eventgraph
+
+eventgraph init --yes             scaffold a project, no prompts
+eventgraph scaffold | eventgraph apply -
+eventgraph check --next 3         the most pressing gaps, in order`}</pre>
+
+      <p class="after">
+        Then the loop is <code>check --next</code> → fill one gap →
+        <code>check</code> → repeat, until the only findings left are the ones
+        you have deliberately answered.
+      </p>
+
+      <h3>For an agent</h3>
+      <p>
+        The same model over MCP, so an agent can query, check and write it
+        without shelling out. Whether writes apply directly or come back as a
+        diff to approve is the project's call, via <code>agent.write</code>.
+      </p>
+
+      <pre>{`{
+  "mcpServers": {
+    "eventgraph": { "command": "npx", "args": ["-y", "@eventgraph/mcp"] }
+  }
+}`}</pre>
+
+      <p class="after last">
+        Prefer <code>eventgraph_slice</code> over reading the whole graph. A
+        large model does not fit a context window any better than it fits a
+        screen.
+      </p>
+    </div>
+  </div>
+</section>
+
+<footer class="band foot">
+  <div class="band-inner">
+    <p class="rail"><b>eventgraph</b>MIT</p>
+    <div class="foot-body">
+      <p>
+        <a href="https://github.com/igoriuz/eventgraph">Source on GitHub</a> ·
+        <a href="https://www.npmjs.com/package/eventgraph">eventgraph on npm</a>
+      </p>
+      <p class="dim small">
+        Built by Igor Kazhdan. MIT licensed. This page is generated from the
+        tool's own output — the findings, the rule catalogue and the graph above
+        all come from a real run against <code>site/demo</code>.
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  pre {
+    font-size: 0.8125rem;
+  }
+
+  .after {
+    margin-top: 1.25rem;
+  }
+
+  h3 {
+    margin-block: 2.75rem 0.6rem;
+  }
+
+  .last {
+    margin-bottom: 0;
+  }
+
+  .foot {
+    padding-block: clamp(2.5rem, 6vw, 4rem);
+  }
+
+  .foot-body p {
+    margin-bottom: 0.75rem;
+  }
+
+  .foot-body .small {
+    font-size: 0.875rem;
+    margin-bottom: 0;
+  }
+</style>

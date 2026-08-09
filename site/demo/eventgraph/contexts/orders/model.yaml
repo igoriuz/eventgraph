@@ -1,0 +1,77 @@
+context: orders
+nodes:
+  customer:         { type: actor }
+  courier:          { type: actor }
+
+  menu:             { type: screen, entry: true }
+  basket:           { type: screen }
+  order-tracking:   { type: screen }
+  courier-app:      { type: screen, entry: true }
+
+  place-order:      { type: command }
+  pay-order:        { type: command }
+  dispatch-order:   { type: command }
+
+  order-placed:     { type: event }
+  payment-taken:    { type: event }
+  payment-refused:  { type: event, failure: true }
+  order-dispatched: { type: event }
+  order-delivered:  { type: event, ends_lifecycle: true }
+  payment-settled:  { type: event, ends_lifecycle: true }
+
+  order:            { type: aggregate }
+  payment:          { type: aggregate }
+
+  order-status:     { type: read-model, consistency: eventual }
+  courier-queue:    { type: read-model, consistency: eventual }
+
+  charge-on-place:  { type: policy, idempotent: true }
+  one-payment-per-order: { type: invariant }
+
+edges:
+  issues:
+    customer: [place-order]
+    courier:  [dispatch-order]
+  sees:
+    customer: [menu, basket, order-tracking]
+    courier:  [courier-app]
+  offers:
+    menu:        [place-order]
+    basket:      [place-order]
+    courier-app: [dispatch-order]
+  navigates-to:
+    menu:           [basket]
+    basket:         [order-tracking]
+    order-tracking: [menu]
+  reads:
+    order-tracking: [order-status]
+    courier-app:    [courier-queue]
+  produces:
+    place-order:    [order-placed]
+    pay-order:      [payment-taken, payment-refused, payment-settled]
+    dispatch-order: [order-dispatched, order-delivered]
+  acts-on:
+    place-order:    [order]
+    pay-order:      [payment]
+    dispatch-order: [order]
+  belongs-to:
+    order-placed:     [order]
+    order-dispatched: [order]
+    order-delivered:  [order]
+    payment-taken:    [payment]
+    payment-refused:  [payment]
+    payment-settled:  [payment]
+  projects-to:
+    order-placed:     [order-status]
+    payment-taken:    [order-status]
+    order-dispatched: [order-status, courier-queue]
+    order-delivered:  [order-status]
+    payment-settled:  [order-status]
+  triggers:
+    order-placed: [charge-on-place]
+  invokes:
+    charge-on-place: [pay-order]
+  enforces:
+    pay-order: [one-payment-per-order]
+  guards:
+    one-payment-per-order: [payment]
