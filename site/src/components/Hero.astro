@@ -1,92 +1,114 @@
 ---
-import checkOutput from '../generated/check.txt?raw';
+import rules from '../generated/rules.json';
 
-const lines = checkOutput.trimEnd().split('\n');
+const lanes = new Set((rules as { lane: string }[]).map(r => r.lane));
 ---
 
 <header class="hero">
-  <div class="hero-inner">
+  <nav class="topbar">
     <p class="wordmark">eventgraph</p>
+    <a href="https://github.com/igoriuz/eventgraph">GitHub</a>
+  </nav>
 
-    <h1>Nothing reacts to a refusal.</h1>
+  <div class="hero-inner">
+    <h1>Find the gaps a review cannot see.</h1>
 
     <p class="lede">
-      The payment code is correct. The tracking screen is correct. And the fact
-      that a payment was refused reaches neither — so the customer waits for an
-      order that is never coming. Nothing in either file is wrong, which is why
-      this survives review.
+      eventgraph holds an application's actors, commands, events, read-models
+      and screens as a queryable graph instead of a diagram. Then <code>check</code> reports
+      the gaps that are structurally impossible to leave open.
     </p>
 
-    <!-- The signature: the edge that leaves an event and lands nowhere. -->
-    <figure class="stub" aria-labelledby="stub-caption">
-      <svg viewBox="0 8 620 104" role="img" aria-label="A command produces an event, and the edge leaving that event ends in nothing.">
-        <defs>
-          <marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,1 L9,5 L0,9" fill="none" stroke="currentColor" stroke-width="1.6" />
-          </marker>
-        </defs>
-
-        <g class="n n1">
-          <text class="kind" x="8" y="30" fill="var(--command)">command</text>
-          <rect x="8" y="40" width="152" height="46" rx="2" />
-          <text class="id" x="24" y="69">pay-order</text>
-        </g>
-
-        <g class="edge e1">
-          <line x1="162" y1="63" x2="216" y2="63" marker-end="url(#head)" />
-        </g>
-
-        <g class="n n2">
-          <text class="kind" x="222" y="30" fill="var(--event)">event</text>
-          <rect x="222" y="40" width="182" height="46" rx="2" />
-          <text class="id" x="238" y="69">payment-refused</text>
-        </g>
-
-        <g class="edge e2 dangling">
-          <line x1="406" y1="63" x2="556" y2="63" stroke-dasharray="5 5" />
-          <circle cx="566" cy="63" r="8" />
-        </g>
-
-        <text class="void" x="586" y="68">?</text>
-      </svg>
-      <figcaption id="stub-caption">
-        Every other edge in the model lands on something. This one has no
-        read-model to project into and no policy to trigger.
-      </figcaption>
-    </figure>
-
-    <div class="terminal" role="group" aria-label="Output of eventgraph check">
-      <div class="prompt"><span class="sigil">$</span> eventgraph check</div>
-      <pre>{lines.map((line, i) => (
-        <span class="line" style={`--i:${i}`}>{line || ' '}{'\n'}</span>
-      ))}</pre>
+    <div class="actions">
+      <div class="install">
+        <code id="install-cmd">npm install -g eventgraph</code>
+        <button type="button" id="copy" data-copy="npm install -g eventgraph">Copy</button>
+      </div>
+      <a class="cta" href="#start">Get started</a>
     </div>
 
-    <p class="footnote">
-      That output is not a mock-up. It is regenerated from <code>site/demo</code> every
-      time this page is built, so a rule whose wording changes cannot leave a
-      stale claim here.
-    </p>
+    <dl class="capabilities">
+      <div>
+        <dt>scaffold</dt>
+        <dd>
+          Reads real source and writes back the part of the model it can prove —
+          screens from file routing, endpoints from route registrations,
+          aggregates from table declarations.
+        </dd>
+      </div>
+      <div>
+        <dt>check</dt>
+        <dd>
+          {rules.length} completeness rules in {lanes.size} lanes. Every one of them
+          can be told it is wrong, in the model, with a reason.
+        </dd>
+      </div>
+      <div>
+        <dt>slice · impact · query</dt>
+        <dd>
+          Ask about one part — the flow around an event, the blast radius of a
+          change — instead of rendering a picture nobody can read.
+        </dd>
+      </div>
+      <div>
+        <dt>MCP server</dt>
+        <dd>
+          The same model for an agent, with writes applied directly or returned
+          as a diff to approve, whichever the project sets.
+        </dd>
+      </div>
+    </dl>
   </div>
 </header>
+
+<script>
+  const button = document.getElementById('copy');
+  button?.addEventListener('click', async () => {
+    const previous = button.textContent;
+    try {
+      await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      button.textContent = 'Copied';
+    } catch {
+      // Clipboard access can be refused; say so rather than looking successful.
+      button.textContent = 'Select it';
+    }
+    setTimeout(() => (button.textContent = previous), 1600);
+  });
+</script>
 
 <style>
   .hero {
     padding-inline: var(--gutter);
-    padding-block: clamp(2.5rem, 7vw, 5.5rem) clamp(2rem, 4vw, 3.5rem);
+    padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
   }
 
-  .hero-inner {
+  .topbar {
     max-width: 78rem;
     margin-inline: auto;
+    padding-block: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .topbar a {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .topbar a:hover {
+    color: var(--ink);
+    text-decoration: underline;
   }
 
   .wordmark {
     font-family: var(--display);
     font-size: 0.8125rem;
     letter-spacing: 0.02em;
-    color: var(--ink);
-    margin-bottom: clamp(2.5rem, 7vw, 4.5rem);
+    margin: 0;
   }
 
   .wordmark::before {
@@ -98,145 +120,115 @@ const lines = checkOutput.trimEnd().split('\n');
     background: var(--accent-bright);
   }
 
+  .hero-inner {
+    max-width: 78rem;
+    margin-inline: auto;
+    padding-top: clamp(3rem, 8vw, 6rem);
+  }
+
   h1 {
-    margin-bottom: 1.5rem;
-    max-width: 18ch;
+    font-size: clamp(1.85rem, 1.15rem + 3vw, 3.4rem);
+    max-width: 20ch;
+    margin-bottom: 1.4rem;
   }
 
   .lede {
-    margin-bottom: clamp(1.75rem, 4vw, 2.75rem);
+    font-size: clamp(1.0625rem, 1rem + 0.45vw, 1.3125rem);
+    max-width: 60ch;
+    margin-bottom: 2.25rem;
   }
 
-  /* --- the dangling edge --- */
-  .stub {
-    margin: 0 0 clamp(2rem, 5vw, 3rem);
-    max-width: 46rem;
+  /* --- install and call to action --- */
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: stretch;
+    margin-bottom: clamp(3rem, 7vw, 4.5rem);
   }
 
-  .stub svg {
-    width: 100%;
-    height: auto;
-    color: var(--ink-soft);
-  }
-
-  .stub .kind {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.06em;
-  }
-
-  .stub .id {
-    font-family: var(--mono);
-    font-size: 15px;
-    fill: var(--ink);
-  }
-
-  .stub rect {
-    fill: var(--wall-raised);
-    stroke: var(--rule-strong);
-    stroke-width: 1.5;
-  }
-
-  .stub .n1 rect { stroke: var(--command); }
-  .stub .n2 rect { stroke: var(--event); }
-
-  .stub .edge line {
-    stroke: var(--ink-soft);
-    stroke-width: 1.75;
-  }
-
-  .stub .dangling line { stroke: var(--error); }
-
-  .stub .dangling circle {
-    fill: none;
-    stroke: var(--error);
-    stroke-width: 1.75;
-    stroke-dasharray: 3 4;
-  }
-
-  .stub .void {
-    font-family: var(--mono);
-    font-size: 17px;
-    fill: var(--error);
-  }
-
-  .stub figcaption {
-    font-size: 0.875rem;
-    color: var(--ink-soft);
-    max-width: 48ch;
-    margin-top: 0.75rem;
-  }
-
-  /* One orchestrated load sequence, then the page holds still. */
-  .stub .n,
-  .stub .edge,
-  .stub .void {
-    animation: appear 0.5s both;
-  }
-
-  .stub .n1 { animation-delay: 0.1s; }
-  .stub .e1 { animation-delay: 0.45s; }
-  .stub .n2 { animation-delay: 0.7s; }
-  .stub .e2 { animation-delay: 1.05s; }
-  .stub .void { animation-delay: 1.5s; }
-
-  @keyframes appear {
-    from { opacity: 0; transform: translateX(-6px); }
-    to { opacity: 1; transform: none; }
-  }
-
-  /* --- the real output --- */
-  .terminal {
-    max-width: 54rem;
-  }
-
-  .prompt {
-    font-family: var(--mono);
-    font-size: 0.8125rem;
-    color: var(--ink-soft);
+  .install {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     background: var(--wall-raised);
-    border: 1px solid var(--rule);
-    border-bottom: 0;
-    border-radius: 3px 3px 0 0;
-    padding: 0.7rem 1.35rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 3px;
+    padding: 0.6rem 0.6rem 0.6rem 1rem;
   }
 
-  .sigil {
-    color: var(--accent);
-    margin-right: 0.5rem;
-  }
-
-  .terminal pre {
-    border-radius: 0 0 3px 3px;
-    font-size: 0.8125rem;
-    white-space: pre-wrap;
-  }
-
-  .line {
-    display: inline;
-    animation: type 0.3s both;
-    animation-delay: calc(1.8s + var(--i) * 0.12s);
-  }
-
-  @keyframes type {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .footnote {
+  .install code {
     font-size: 0.875rem;
-    color: var(--ink-soft);
-    margin-top: 1.1rem;
-    max-width: 52ch;
+    white-space: nowrap;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .stub .n,
-    .stub .edge,
-    .stub .void,
-    .line {
-      opacity: 1;
-      transform: none;
+  .install code::before {
+    content: '$ ';
+    color: var(--accent);
+  }
+
+  #copy {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+  }
+
+  #copy:hover {
+    color: var(--ink);
+    border-color: var(--ink-soft);
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    background: var(--ink);
+    color: var(--wall-raised);
+    text-decoration: none;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border-radius: 3px;
+    padding: 0.72rem 1.35rem;
+  }
+
+  .cta:hover {
+    background: #2a2e3c;
+  }
+
+  /* --- what it does --- */
+  .capabilities {
+    display: grid;
+    gap: 1.75rem 2.5rem;
+    margin: 0;
+    padding-top: clamp(1.5rem, 4vw, 2.5rem);
+    border-top: 1px solid var(--rule);
+  }
+
+  @media (min-width: 44rem) {
+    .capabilities {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+  }
+
+  @media (min-width: 72rem) {
+    .capabilities {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  dt {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    margin-bottom: 0.4rem;
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--ink-soft);
   }
 </style>
