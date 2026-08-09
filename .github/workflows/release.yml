@@ -49,9 +49,12 @@ jobs:
         run: |
           mkdir -p /tmp/tarballs
           for pkg in core viewer cli mcp; do
-            pnpm --filter "./packages/$pkg" pack --pack-destination /tmp/tarballs
+            # Has to run inside the package: `pnpm --filter <dir> pack` writes
+            # nothing at all, silently.
+            (cd "packages/$pkg" && pnpm pack --pack-destination /tmp/tarballs)
           done
           ls -la /tmp/tarballs
+          test "$(ls -1 /tmp/tarballs/*.tgz | wc -l)" -eq 4
 
       - name: Publish
         run: |
