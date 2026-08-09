@@ -6,6 +6,7 @@ import { allRules, getRule, type Finding, type Lane, type Rule } from './kit.js'
 import './structure.js';
 import './ux.js';
 import './platform.js';
+import './backend.js';
 
 export { allRules, getRule } from './kit.js';
 export type { Finding, Lane, Rule, Severity } from './kit.js';
@@ -30,7 +31,7 @@ export function checkGraph(graph: EventGraph, preset: PresetDefinition, options:
 }
 
 /** Lower sorts first. Bootstrap gaps block everything else by definition. */
-const LANE_RANK: Record<Lane, number> = { bootstrap: 0, structure: 1, ux: 2, platform: 3 };
+const LANE_RANK: Record<Lane, number> = { bootstrap: 0, structure: 1, ux: 2, backend: 3, platform: 4 };
 
 /**
  * Orders findings by what is worth fixing first, which is what makes `next`

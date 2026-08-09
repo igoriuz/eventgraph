@@ -69,7 +69,7 @@ describe('preset wiring', () => {
     for (const rule of ruleCatalog()) {
       expect(rule.id).toBeTruthy();
       expect(rule.about.length).toBeGreaterThan(20);
-      expect(['bootstrap', 'structure', 'ux', 'platform']).toContain(rule.lane);
+      expect(['bootstrap', 'structure', 'ux', 'backend', 'platform']).toContain(rule.lane);
     }
   });
 });
@@ -201,6 +201,177 @@ describe('ux', () => {
     graph.addEdge(edge('acted', 'projects-to', 'status'));
     // Nothing reads the read-model any more, so no surface shows the outcome.
     expect(rulesHit(graph)).toContain('command-no-feedback');
+  });
+
+  /**
+   * A sensor has no screen by construction, so measuring it against one
+   * reports every command it issues and tells you nothing. The question that
+   * does apply is whether a refusal it cannot see is lost.
+   */
+  describe('headless actors', () => {
+    /** A device issuing one command that an invariant may refuse. */
+    function sensorGraph(actorData: Record<string, unknown> = { headless: true }): EventGraph {
+      const graph = completeGraph();
+      graph.addNode({ context: 'app', id: 'device', type: 'actor', label: 'Device', data: actorData });
+      graph.addNode({ context: 'app', id: 'report', type: 'command', label: 'Report' });
+      graph.addNode({ context: 'app', id: 'reported', type: 'event', label: 'Reported' });
+      graph.addNode({ context: 'app', id: 'shape', type: 'invariant', label: 'Shape' });
+      graph.addEdge(edge('device', 'issues', 'report'));
+      graph.addEdge(edge('report', 'produces', 'reported'));
+      graph.addEdge(edge('report', 'acts-on', 'thing'));
+      graph.addEdge(edge('report', 'enforces', 'shape'));
+      graph.addEdge(edge('shape', 'guards', 'thing'));
+      graph.addEdge(edge('reported', 'belongs-to', 'thing'));
+      graph.addEdge(edge('reported', 'projects-to', 'status'));
+      return graph;
+    }
+
+    it('does not ask a headless actor to observe an outcome', () => {
+      expect(rulesHit(sensorGraph())).not.toContain('command-no-feedback');
+    });
+
+    it('still asks a human actor to, on the same shape of graph', () => {
+      expect(rulesHit(sensorGraph({}))).toContain('command-no-feedback');
+    });
+
+    it('reports a refusal the sender can neither see nor retry', () => {
+      expect(rulesHit(sensorGraph())).toContain('headless-rejection-lost');
+    });
+
+    it('accepts a sender that retries', () => {
+      expect(rulesHit(sensorGraph({ headless: true, retried: true }))).not.toContain(
+        'headless-rejection-lost'
+      );
+    });
+
+    it('accepts a decision that owns the loss', () => {
+      const graph = sensorGraph();
+      graph.addNode({ context: 'app', id: 'd-drop', type: 'decision', label: 'Dropping is fine' });
+      graph.addEdge(edge('d-drop', 'affects', 'report'));
+      expect(rulesHit(graph)).not.toContain('headless-rejection-lost');
+    });
+
+    it('says nothing about a command no invariant can refuse', () => {
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'device',
+        type: 'actor',
+        label: 'Device',
+        data: { headless: true },
+      });
+      graph.addNode({ context: 'app', id: 'ping', type: 'command', label: 'Ping' });
+      graph.addNode({ context: 'app', id: 'pinged', type: 'event', label: 'Pinged' });
+      graph.addEdge(edge('device', 'issues', 'ping'));
+      graph.addEdge(edge('ping', 'produces', 'pinged'));
+      graph.addEdge(edge('ping', 'acts-on', 'thing'));
+      graph.addEdge(edge('pinged', 'belongs-to', 'thing'));
+      graph.addEdge(edge('pinged', 'projects-to', 'status'));
+
+      expect(rulesHit(graph)).not.toContain('headless-rejection-lost');
+    });
+
+    it('holds a command to the human standard when a person also issues it', () => {
+      // The bridge and the trainer both call log-wild-encounter. The trainer is
+      // still owed feedback, so neither exemption may apply to it.
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'device',
+        type: 'actor',
+        label: 'Device',
+        data: { headless: true },
+      });
+      graph.addNode({ context: 'app', id: 'report', type: 'command', label: 'Report' });
+      graph.addNode({ context: 'app', id: 'reported', type: 'event', label: 'Reported' });
+      graph.addNode({ context: 'app', id: 'shape', type: 'invariant', label: 'Shape' });
+      graph.addEdge(edge('device', 'issues', 'report'));
+      graph.addEdge(edge('user', 'issues', 'report'));
+      graph.addEdge(edge('report', 'produces', 'reported'));
+      graph.addEdge(edge('report', 'acts-on', 'thing'));
+      graph.addEdge(edge('report', 'enforces', 'shape'));
+      graph.addEdge(edge('shape', 'guards', 'thing'));
+      graph.addEdge(edge('reported', 'belongs-to', 'thing'));
+      // Deliberately no projects-to: nothing shows the outcome to anyone.
+
+      const hit = rulesHit(graph);
+      expect(hit).not.toContain('headless-rejection-lost');
+      expect(hit).toContain('command-no-feedback');
+    });
+  });
+
+  /**
+   * The writer works, the display works, and the display is empty forever —
+   * because the store refuses to be read at all. Neither half is wrong on its
+   * own, which is why this survives review.
+   */
+  describe('state no reader may open', () => {
+    function privateStore(): EventGraph {
+      const graph = completeGraph();
+      graph.addNode({
+        context: 'app',
+        id: 'vault',
+        type: 'aggregate',
+        label: 'Vault',
+        data: { immortal: true, subscribable: false },
+      });
+      graph.addNode({ context: 'app', id: 'stored', type: 'event', label: 'Stored' });
+      graph.addNode({ context: 'app', id: 'store', type: 'command', label: 'Store' });
+      graph.addEdge(edge('user', 'issues', 'store'));
+      graph.addEdge(edge('main', 'offers', 'store'));
+      graph.addEdge(edge('store', 'produces', 'stored'));
+      graph.addEdge(edge('store', 'acts-on', 'vault'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      return graph;
+    }
+
+    it('reports an event written where nothing may read it', () => {
+      expect(rulesHit(privateStore())).toContain('unreadable-state');
+    });
+
+    it('names the store rather than only the missing consumer', () => {
+      const found = checkGraph(privateStore(), ALL).filter(f => f.rule === 'unreadable-state');
+      expect(found[0]!.message).toContain('Vault');
+      expect(found[0]!.node).toBe('app.stored');
+    });
+
+    it('accepts an event that was never meant to be seen', () => {
+      const graph = privateStore();
+      graph.removeNode('app.stored');
+      graph.addNode({
+        context: 'app',
+        id: 'stored',
+        type: 'event',
+        label: 'Stored',
+        data: { terminal: 'a shadowban the caller must not detect' },
+      });
+      graph.addEdge(edge('store', 'produces', 'stored'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      expect(rulesHit(graph)).not.toContain('unreadable-state');
+    });
+
+    it('does not also report the vaguer diagnosis on the same node', () => {
+      // Both rules match; only the one that explains why should speak.
+      const hit = rulesHit(privateStore());
+      expect(hit).toContain('unreadable-state');
+      expect(hit).not.toContain('event-no-consumer');
+    });
+
+    it('says nothing about a store that simply has no reader yet', () => {
+      const graph = privateStore();
+      graph.removeNode('app.vault');
+      graph.addNode({
+        context: 'app',
+        id: 'vault',
+        type: 'aggregate',
+        label: 'Vault',
+        data: { immortal: true },
+      });
+      graph.addEdge(edge('store', 'acts-on', 'vault'));
+      graph.addEdge(edge('stored', 'belongs-to', 'vault'));
+      // event-no-consumer covers that; it is a gap, not a dead end.
+      expect(rulesHit(graph)).not.toContain('unreadable-state');
+    });
   });
 
   /**

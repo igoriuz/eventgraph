@@ -11,6 +11,9 @@ import { registerConnectCommand } from './commands/connect.js';
 import { registerCheckCommand } from './commands/check.js';
 import { registerSliceCommand } from './commands/slice.js';
 import { registerVerifyCommand } from './commands/verify.js';
+import { registerApplyCommand } from './commands/apply.js';
+import { registerMigrateCommand } from './commands/migrate.js';
+import { registerScaffoldCommand } from './commands/scaffold.js';
 
 const program = new Command();
 
@@ -30,5 +33,8 @@ registerConnectCommand(program);
 registerCheckCommand(program);
 registerSliceCommand(program);
 registerVerifyCommand(program);
+registerApplyCommand(program);
+registerMigrateCommand(program);
+registerScaffoldCommand(program);
 
 program.parse();

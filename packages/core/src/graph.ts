@@ -8,6 +8,12 @@ export class EventGraph {
    */
   platforms: string[] = [];
 
+  /**
+   * Whether this model describes a backend. Set from the project config; the
+   * backend rules also switch themselves on when a backend surface is present.
+   */
+  backend = false;
+
   private nodes = new Map<string, GraphNode>();
   private outgoing = new Map<string, GraphEdge[]>();
   private incoming = new Map<string, GraphEdge[]>();

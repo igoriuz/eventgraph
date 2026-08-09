@@ -3,7 +3,7 @@ import type { GraphNode } from '../schema.js';
 import { qualifiedId } from '../schema.js';
 
 export type Severity = 'error' | 'warn';
-export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform';
+export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend';
 
 export interface Finding {
   rule: string;
@@ -91,4 +91,47 @@ export function flag<T = unknown>(node: GraphNode, key: string): T | undefined {
 export function hasFlag(node: GraphNode, key: string): boolean {
   const value = flag(node, key);
   return value === true || (typeof value === 'string' && value.length > 0);
+}
+
+// --- surface kinds ---------------------------------------------------------
+
+/**
+ * A `screen` is really the outside edge of the system: where an actor touches
+ * it and where feedback lands. In an app that edge is a view; in a backend it
+ * is an HTTP endpoint, a queue consumer or a scheduled worker. Same position
+ * in the graph, so it stays one node type discriminated by `data.kind`.
+ */
+export const SURFACE_KINDS = ['screen', 'notification', 'widget', 'endpoint', 'consumer', 'job'] as const;
+
+/** Surfaces that exist in a backend rather than in front of a human. */
+export const BACKEND_KINDS: readonly string[] = ['endpoint', 'consumer', 'job'];
+
+/**
+ * Surfaces on which an actor can actually observe an outcome. A consumer or a
+ * job runs unattended, so routing feedback there means nobody sees it.
+ */
+export const OBSERVABLE_KINDS: readonly string[] = ['screen', 'notification', 'widget', 'endpoint'];
+
+export const kindOf = (node: GraphNode): string => flag<string>(node, 'kind') ?? 'screen';
+
+/** Only a plain screen is navigated to; every other kind arrives on its own. */
+export const isNavigable = (node: GraphNode): boolean => kindOf(node) === 'screen';
+
+// --- actors ----------------------------------------------------------------
+
+/**
+ * An actor with nothing to look at: a sensor, a scheduler, a partner system.
+ *
+ * Feedback rules are written for people — "the user does something and never
+ * learns whether it worked" is a UX defect. A device reporting telemetry has no
+ * screen by definition, so measuring it against one produces a finding for
+ * every command it issues and says nothing. What matters for a headless actor
+ * is not whether it can see the outcome but whether a rejected call is lost.
+ */
+export const isHeadless = (node: GraphNode): boolean => hasFlag(node, 'headless');
+
+/** Whether every actor issuing this command is headless (and at least one does). */
+export function issuedOnlyHeadlessly(graph: EventGraph, command: GraphNode): boolean {
+  const actors = sources(graph, command, 'issues', 'actor');
+  return actors.length > 0 && actors.every(isHeadless);
 }

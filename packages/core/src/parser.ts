@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type { ProjectConfig, ContextModel } from './schema.js';
 import { qualifiedId } from './schema.js';
+import { parseContextModel } from './model-file.js';
 import { EventGraph } from './graph.js';
 
 export function loadConfig(projectDir: string): ProjectConfig {
@@ -11,13 +12,19 @@ export function loadConfig(projectDir: string): ProjectConfig {
   return parseYaml(content) as ProjectConfig;
 }
 
-export function loadContext(projectDir: string, contextName: string): EventGraph {
+/** Reads one context file, accepting either on-disk form. */
+export function readContextModel(projectDir: string, contextName: string): ContextModel {
   const modelPath = join(projectDir, 'contexts', contextName, 'model.yaml');
-  const content = readFileSync(modelPath, 'utf-8');
-  const raw = parseYaml(content) as ContextModel;
+  try {
+    return parseContextModel(parseYaml(readFileSync(modelPath, 'utf-8')));
+  } catch (error) {
+    throw new Error(`contexts/${contextName}/model.yaml: ${(error as Error).message}`);
+  }
+}
 
+export function loadContext(projectDir: string, contextName: string): EventGraph {
   const graph = new EventGraph();
-  loadContextIntoGraph(graph, raw);
+  loadContextIntoGraph(graph, readContextModel(projectDir, contextName));
   return graph;
 }
 
@@ -45,28 +52,41 @@ export function loadProject(projectDir: string): { config: ProjectConfig; graph:
   const config = loadConfig(projectDir);
   const graph = new EventGraph();
   graph.platforms = config.platforms ?? [];
+  graph.backend = config.backend ?? false;
 
   for (const contextName of config.contexts) {
-    const modelPath = join(projectDir, 'contexts', contextName, 'model.yaml');
-    const content = readFileSync(modelPath, 'utf-8');
-    const model = parseYaml(content) as ContextModel;
-    loadContextIntoGraph(graph, model);
+    loadContextIntoGraph(graph, readContextModel(projectDir, contextName));
   }
 
   return { config, graph };
 }
 
+function isProjectDir(dir: string): boolean {
+  try {
+    readFileSync(join(dir, 'eventgraph.yaml'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Walks up looking for the project.
+ *
+ * The directory itself counts, not only a child named `eventgraph`. Checking
+ * only for the child meant standing inside your own project reported that no
+ * project existed, and renaming the directory broke every command — the name
+ * was load-bearing without ever being documented as such.
+ */
 export function findProjectDir(startDir: string = process.cwd()): string | null {
   let dir = startDir;
   while (true) {
-    const candidate = join(dir, 'eventgraph');
-    try {
-      readFileSync(join(candidate, 'eventgraph.yaml'));
-      return candidate;
-    } catch {
-      const parent = join(dir, '..');
-      if (parent === dir) return null;
-      dir = parent;
-    }
+    if (isProjectDir(dir)) return dir;
+    const nested = join(dir, 'eventgraph');
+    if (isProjectDir(nested)) return nested;
+
+    const parent = join(dir, '..');
+    if (parent === dir) return null;
+    dir = parent;
   }
 }

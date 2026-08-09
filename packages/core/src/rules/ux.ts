@@ -1,6 +1,18 @@
 import type { EventGraph } from '../graph.js';
 import type { GraphNode } from '../schema.js';
-import { defineRule, finding, flag, hasFlag, idOf, sources, targets } from './kit.js';
+import {
+  defineRule,
+  finding,
+  flag,
+  hasFlag,
+  idOf,
+  isNavigable,
+  issuedOnlyHeadlessly,
+  kindOf,
+  OBSERVABLE_KINDS,
+  sources,
+  targets,
+} from './kit.js';
 
 /**
  * Structural UX rules. Nothing here is about visual design, copy or layout —
@@ -9,9 +21,6 @@ import { defineRule, finding, flag, hasFlag, idOf, sources, targets } from './ki
  */
 
 const BURIED_DEPTH = 3;
-
-/** A screen is navigable unless it is a notification or widget. */
-const isNavigable = (n: GraphNode) => (flag<string>(n, 'kind') ?? 'screen') === 'screen';
 
 /** Navigable screens reachable from an entry screen, mapped to hop count. */
 function reachable(graph: EventGraph): Map<string, number> {
@@ -81,14 +90,20 @@ defineRule(
       .filter(c => targets(g, c, 'produces').length > 0)
       // A command whose every outcome is deliberately unobserved is not a bug.
       .filter(c => !targets(g, c, 'produces').every(e => hasFlag(e, 'terminal')))
+      // Nor is one only ever issued by something with nothing to look at.
+      // headless-rejection-lost asks the question that does apply there.
+      .filter(c => !issuedOnlyHeadlessly(g, c))
       .filter(command => {
         const audience = new Set(sources(g, command, 'issues', 'actor').map(idOf));
         for (const rmId of reachableReadModels(g, command)) {
           const rm = g.getNode(rmId);
           if (!rm) continue;
           for (const surface of sources(g, rm, 'reads', 'screen')) {
-            // Notifications and widgets arrive unprompted, so navigability
-            // says nothing about whether the user will see them.
+            // A consumer or a job runs unattended, so routing an outcome there
+            // is not feedback — nobody is on the other end of it.
+            if (!OBSERVABLE_KINDS.includes(kindOf(surface))) continue;
+            // Notifications, widgets and endpoint responses arrive unprompted,
+            // so navigability says nothing about whether they will be seen.
             if (isNavigable(surface) && anyEntry && !depths.has(idOf(surface))) continue;
             const seenBy = sources(g, surface, 'sees', 'actor').map(idOf);
             if (seenBy.length === 0 || seenBy.some(a => audience.has(a))) return false;
@@ -105,6 +120,64 @@ defineRule(
         )
       );
   }
+);
+
+defineRule(
+  {
+    id: 'headless-rejection-lost',
+    severity: 'error',
+    lane: 'ux',
+    about:
+      'A sensor or scheduler cannot notice a refusal — it has no screen to show one on. So a command it issues that an invariant may reject needs somewhere for that rejection to go: a retry on the sender, or a decision saying the loss is accepted. Without either, the refused call is data that silently never arrives, and the first sign of it is a reader noticing the state is wrong.',
+  },
+  (g, self) =>
+    g
+      .getNodesByType('command')
+      .filter(c => issuedOnlyHeadlessly(g, c))
+      // Only a command that can actually be refused can lose a refusal.
+      .filter(c => targets(g, c, 'enforces').length > 0)
+      .filter(c => {
+        // Either the command or its sender may carry the answer.
+        if (hasFlag(c, 'retried')) return false;
+        if (sources(g, c, 'issues', 'actor').some(a => hasFlag(a, 'retried'))) return false;
+        // Or a decision may own the trade-off explicitly.
+        return sources(g, c, 'affects', 'decision').length === 0;
+      })
+      .map(c =>
+        finding(
+          self,
+          c,
+          'a rejection here is invisible to the sender and lost',
+          'Set data.retried on the command or its actor if the sender retries, or point a decision at it with affects to accept the loss.'
+        )
+      )
+);
+
+defineRule(
+  {
+    id: 'unreadable-state',
+    severity: 'error',
+    lane: 'ux',
+    about:
+      'State whose store no reader may open. Not "nothing reads it yet" — nothing *can*, because visibility is refused at the store: a table without a public flag, a collection with no read rule, a private field. Both halves get built and tested and neither is wrong on its own; the writer works, the display works, and the display is empty forever. Set data.subscribable to false wherever that is known, and this finds the events written into it that were meant to be seen.',
+  },
+  (g, self) =>
+    g
+      .getNodesByType('aggregate')
+      .filter(a => flag(a, 'subscribable') === false)
+      .flatMap(aggregate =>
+        sources(g, aggregate, 'belongs-to', 'event')
+          // An event nobody was meant to see is not the problem here.
+          .filter(e => !hasFlag(e, 'terminal'))
+          .map(event =>
+            finding(
+              self,
+              event,
+              `written into "${aggregate.label}", which no reader may subscribe to`,
+              'Make the store readable, mark the event terminal with a reason, or drop the write.'
+            )
+          )
+      )
 );
 
 defineRule(

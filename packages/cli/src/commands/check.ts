@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { checkGraph, loadPreset, ruleCatalog, unknownRuleIds, type Finding, type Lane } from '@eventgraph/core';
 import { loadOrFail, presetsDir } from '../util.js';
 
-const LANES: Lane[] = ['bootstrap', 'structure', 'ux', 'platform'];
+const LANES: Lane[] = ['bootstrap', 'structure', 'ux', 'backend', 'platform'];
 
 function print(findings: Finding[], total: number): void {
   for (const f of findings) {
