@@ -452,7 +452,7 @@ describe('schema', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../schema.js'
 
 - [ ] **Step 3: Write implementation**
@@ -552,7 +552,7 @@ export function parseQualifiedId(qualifiedId: string): { context: string; nodeId
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -716,7 +716,7 @@ describe('EventGraph', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../graph.js'
 
 - [ ] **Step 3: Write implementation**
@@ -901,7 +901,7 @@ export class EventGraph {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -1055,7 +1055,7 @@ edges: []
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../parser.js'
 
 - [ ] **Step 3: Write implementation**
@@ -1138,7 +1138,7 @@ export function findProjectDir(startDir: string = process.cwd()): string | null 
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -1234,7 +1234,7 @@ describe('QueryEngine', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../query.js'
 
 - [ ] **Step 3: Write implementation**
@@ -1340,7 +1340,7 @@ export class QueryEngine {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -1427,7 +1427,7 @@ describe('analyzeImpact', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../impact.js'
 
 - [ ] **Step 3: Write implementation**
@@ -1508,7 +1508,7 @@ export function analyzeImpact(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -1678,7 +1678,7 @@ edgeRules: []
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../validate.js'
 
 - [ ] **Step 4: Write implementation**
@@ -1767,7 +1767,7 @@ export function validateGraph(graph: EventGraph, preset: PresetDefinition): Vali
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 6: Commit**
@@ -1857,7 +1857,7 @@ describe('writer', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: FAIL — cannot find module '../writer.js'
 
 - [ ] **Step 3: Write implementation**
@@ -1963,7 +1963,7 @@ export function generateYamlDiff(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -2087,12 +2087,12 @@ export { addNodeToContext, addEdgeToContext, removeNodeFromContext, generateYaml
 
 - [ ] **Step 3: Verify core builds cleanly**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm --filter @eventgraph/core run build`
+Run: `pnpm --filter @eventgraph/core run build`
 Expected: Clean build, dist/ directory created
 
 - [ ] **Step 4: Run all core tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test -- --filter core`
+Run: `pnpm test -- --filter core`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -2498,7 +2498,7 @@ export function registerValidateCommand(program: Command): void {
 
 - [ ] **Step 5: Run tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS
 
 - [ ] **Step 6: Commit**
@@ -2663,7 +2663,7 @@ export function registerConnectCommand(program: Command): void {
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -3096,7 +3096,7 @@ describe('generateViewerHtml', () => {
 
 - [ ] **Step 7: Run tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS
 
 - [ ] **Step 8: Commit**
@@ -3435,7 +3435,7 @@ await server.connect(transport);
 
 - [ ] **Step 4: Run tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS
 
 - [ ] **Step 5: Commit**
@@ -3790,7 +3790,7 @@ server.tool(
 
 - [ ] **Step 5: Run all tests**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS
 
 - [ ] **Step 6: Commit**
@@ -3923,7 +3923,7 @@ describe('E2E', () => {
 
 - [ ] **Step 2: Run the full test suite**
 
-Run: `cd /Users/igor/Private/research/eventgraph && pnpm test`
+Run: `pnpm test`
 Expected: All tests PASS across all packages
 
 - [ ] **Step 3: Commit**
