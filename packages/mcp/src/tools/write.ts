@@ -1,6 +1,5 @@
 import {
-  type EventGraph,
-  type ProjectConfig,
+  loadProject,
   addNodeToContext,
   addEdgeToContext,
   removeNodeFromContext,
@@ -21,11 +20,19 @@ export interface WriteToolsApi {
   eventgraph_remove_node(input: { nodeId: string }): Promise<WriteResult>;
 }
 
-export function createWriteTools(graph: EventGraph, config: ProjectConfig, projectDir: string): WriteToolsApi {
-  const mode = config.agent.write;
+/**
+ * Reads the project per call for the same reason the read tools do: a write
+ * lands on disk, and anything holding a graph from startup would keep answering
+ * from before it. `agent.write` is read fresh too, so changing the mode in
+ * eventgraph.yaml takes effect without restarting the server.
+ */
+export function createWriteTools(projectDir: string): WriteToolsApi {
+  const open = () => loadProject(projectDir);
+  const writeMode = () => open().config.agent.write;
 
   return {
     async eventgraph_add_node({ context, id, type, label, data }) {
+      const mode = writeMode();
       if (mode === 'locked') {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
@@ -42,6 +49,7 @@ export function createWriteTools(graph: EventGraph, config: ProjectConfig, proje
     },
 
     async eventgraph_add_edge({ context, from, to, type }) {
+      const mode = writeMode();
       if (mode === 'locked') {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
@@ -58,13 +66,15 @@ export function createWriteTools(graph: EventGraph, config: ProjectConfig, proje
     },
 
     async eventgraph_update_node({ nodeId: _nodeId }) {
-      if (mode === 'locked') {
+      if (writeMode() === 'locked') {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
       return { success: false, error: 'Update not yet implemented in MVP' };
     },
 
     async eventgraph_remove_node({ nodeId }) {
+      const { graph } = open();
+      const mode = writeMode();
       if (mode === 'locked') {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }

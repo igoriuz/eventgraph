@@ -76,9 +76,20 @@ jobs:
         if: env.NPM_TOKEN != ''
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
 
-      - name: Publish
+      # Only some packages change in a given release, and republishing a version
+      # that already exists is an error that would abort the rest of the loop.
+      - name: Publish what is new
         run: |
+          published=0
           for tarball in /tmp/tarballs/*.tgz; do
-            echo "publishing $tarball"
+            name=$(tar -xzOf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).name')
+            version=$(tar -xzOf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version')
+            if npm view "$name@$version" version > /dev/null 2>&1; then
+              echo "skipping $name@$version — already on the registry"
+              continue
+            fi
+            echo "publishing $name@$version"
             npm publish "$tarball" --access public --provenance
+            published=$((published + 1))
           done
+          echo "published $published package(s)"

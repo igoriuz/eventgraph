@@ -1,11 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { stringify as stringifyYaml } from 'yaml';
-import {
-  type EventGraph,
-  type ProjectConfig,
-  loadConfig,
-} from 'eventgraph-core';
+import { loadConfig, loadProject } from 'eventgraph-core';
 import { generateViewerHtml } from 'eventgraph-viewer';
 
 export interface MetaToolsApi {
@@ -13,9 +9,11 @@ export interface MetaToolsApi {
   eventgraph_init_context(input: { name: string }): Promise<{ success: boolean }>;
 }
 
-export function createMetaTools(graph: EventGraph, config: ProjectConfig, projectDir: string): MetaToolsApi {
+export function createMetaTools(projectDir: string): MetaToolsApi {
   return {
     async eventgraph_view() {
+      // Rendered from the model as it is on disk now, not as it was at startup.
+      const { config, graph } = loadProject(projectDir);
       const html = generateViewerHtml(graph, config.name);
       const outputPath = join(projectDir, '..', 'eventgraph-viewer.html');
       writeFileSync(outputPath, html);

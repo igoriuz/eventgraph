@@ -13,10 +13,13 @@ if (!projectDir) {
   process.exit(1);
 }
 
-const { config, graph } = loadProject(projectDir);
-const readTools = createReadTools(graph, config, projectDir);
-const writeTools = createWriteTools(graph, config, projectDir);
-const metaTools = createMetaTools(graph, config, projectDir);
+// Loaded once here only to fail fast on a broken model; the tools read the
+// project themselves on every call so none of them can answer from a stale copy.
+loadProject(projectDir);
+
+const readTools = createReadTools(projectDir);
+const writeTools = createWriteTools(projectDir);
+const metaTools = createMetaTools(projectDir);
 
 const server = new McpServer({
   name: 'eventgraph',

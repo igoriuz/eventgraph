@@ -3,7 +3,6 @@ import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createReadTools } from '../tools/read.js';
-import { loadProject } from 'eventgraph-core';
 
 const TMP = join(tmpdir(), 'eventgraph-mcp-test-' + Date.now());
 
@@ -54,8 +53,7 @@ describe('MCP read tools', () => {
   });
 
   it('eventgraph_query returns matching nodes', async () => {
-    const { config, graph } = loadProject(projectDir);
-    const tools = createReadTools(graph, config, projectDir);
+    const tools = createReadTools(projectDir);
 
     const result = await tools.eventgraph_query({ expr: 'type:event' });
     expect(result.nodes).toHaveLength(1);
@@ -63,8 +61,7 @@ describe('MCP read tools', () => {
   });
 
   it('eventgraph_impact returns impact analysis', async () => {
-    const { config, graph } = loadProject(projectDir);
-    const tools = createReadTools(graph, config, projectDir);
+    const tools = createReadTools(projectDir);
 
     const result = await tools.eventgraph_impact({ nodeId: 'order-placed' });
     expect(result.totalAffected).toBe(1);
@@ -72,24 +69,21 @@ describe('MCP read tools', () => {
   });
 
   it('eventgraph_get_node returns a single node', async () => {
-    const { config, graph } = loadProject(projectDir);
-    const tools = createReadTools(graph, config, projectDir);
+    const tools = createReadTools(projectDir);
 
     const result = await tools.eventgraph_get_node({ nodeId: 'payments.place-order' });
     expect(result.node?.label).toBe('Place Order');
   });
 
   it('eventgraph_list_contexts returns all contexts', async () => {
-    const { config, graph } = loadProject(projectDir);
-    const tools = createReadTools(graph, config, projectDir);
+    const tools = createReadTools(projectDir);
 
     const result = await tools.eventgraph_list_contexts({});
     expect(result.contexts).toEqual(['payments']);
   });
 
   it('eventgraph_validate returns validation result', async () => {
-    const { config, graph } = loadProject(projectDir);
-    const tools = createReadTools(graph, config, projectDir);
+    const tools = createReadTools(projectDir);
 
     const result = await tools.eventgraph_validate({});
     expect(result.valid).toBe(true);

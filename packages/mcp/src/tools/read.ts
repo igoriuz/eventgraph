@@ -1,9 +1,8 @@
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import {
-  type EventGraph,
-  type ProjectConfig,
   type GraphNode,
+  loadProject,
   QueryEngine,
   analyzeImpact,
   validateGraph,
@@ -49,16 +48,25 @@ function presetsDirPath(): string {
   return candidates.find(existsSync) ?? candidates[candidates.length - 1]!;
 }
 
-export function createReadTools(graph: EventGraph, config: ProjectConfig, _projectDir: string): ReadToolsApi {
-  const queryEngine = new QueryEngine(graph);
+/**
+ * Every tool reads the model from disk rather than closing over one loaded at
+ * startup. A long-lived server that held the graph in memory could not see its
+ * own writes — an agent adding a node and querying for it got the state from
+ * before — and could not see edits made by the CLI in another terminal either.
+ * The model is a handful of small YAML files, so re-reading is cheaper than
+ * any scheme for deciding when the copy went stale.
+ */
+export function createReadTools(projectDir: string): ReadToolsApi {
+  const open = () => loadProject(projectDir);
 
   return {
     async eventgraph_query({ expr }) {
-      const nodes = queryEngine.query(expr);
+      const nodes = new QueryEngine(open().graph).query(expr);
       return { nodes };
     },
 
     async eventgraph_impact({ nodeId, depth }) {
+      const { graph } = open();
       let qualifiedId = nodeId;
       if (!nodeId.includes('.')) {
         const match = graph.getAllNodes().find(n => n.id === nodeId);
@@ -78,12 +86,12 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
     },
 
     async eventgraph_get_node({ nodeId }) {
-      const node = graph.getNode(nodeId) ?? null;
+      const node = open().graph.getNode(nodeId) ?? null;
       return { node };
     },
 
     async eventgraph_list_contexts() {
-      return { contexts: graph.getContexts() };
+      return { contexts: open().graph.getContexts() };
     },
 
     /**
@@ -92,7 +100,7 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
      * few dozen nodes.
      */
     async eventgraph_slice({ eventId }) {
-      const s = slice(graph, eventId);
+      const s = slice(open().graph, eventId);
       const ids = (nodes: GraphNode[]) => nodes.map(n => `${n.context}.${n.id}`);
       return {
         event: `${s.event.context}.${s.event.id}`,
@@ -108,7 +116,7 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
 
     async eventgraph_lifecycle({ aggregateId }) {
       return {
-        events: lifecycle(graph, aggregateId).map(e => ({
+        events: lifecycle(open().graph, aggregateId).map(e => ({
           id: `${e.context}.${e.id}`,
           label: e.label,
           endsLifecycle: e.data?.ends_lifecycle === true,
@@ -122,6 +130,7 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
      * turns it into "what should I do next".
      */
     async eventgraph_check({ lane, limit } = {}) {
+      const { config, graph } = open();
       const preset = loadPreset(config.preset, presetsDirPath());
       const all = checkGraph(graph, preset, { lane });
       const findings = limit && limit > 0 ? all.slice(0, limit) : all;
@@ -134,6 +143,7 @@ export function createReadTools(graph: EventGraph, config: ProjectConfig, _proje
     },
 
     async eventgraph_validate() {
+      const { config, graph } = open();
       const preset = loadPreset(config.preset, presetsDirPath());
       const errors = validateGraph(graph, preset);
       return {
