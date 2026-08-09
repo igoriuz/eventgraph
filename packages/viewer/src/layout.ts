@@ -8,6 +8,8 @@ export interface LayoutNode {
   swimlane: number;
   x: number;
   y: number;
+  /** Rendered width. The renderer uses this, so layout and picture agree. */
+  width: number;
   data?: Record<string, unknown>;
 }
 
@@ -54,8 +56,27 @@ export const SWIMLANE_LABELS = [
 ];
 
 export const SWIMLANE_HEIGHT = 110;
+
+/** Nominal column width, and the floor for a short label. */
 export const NODE_WIDTH = 170;
 const NODE_SPACING = 30;
+
+/**
+ * A node is as wide as its label needs. The renderer sets this width on the
+ * element rather than letting the text size it, because a layout that packs
+ * nodes against a width the picture does not use produces overlaps — which is
+ * exactly what a node offset by a fraction of a column used to do.
+ *
+ * 11px/500 in the UI sans face measures under 7px per character across the
+ * labels this renders; rounding up trades a little whitespace for never
+ * clipping a name.
+ */
+const CHAR_WIDTH = 7;
+const LABEL_PADDING = 30;
+
+export function nodeWidth(label: string): number {
+  return Math.max(NODE_WIDTH, Math.ceil(label.length * CHAR_WIDTH) + LABEL_PADDING);
+}
 
 const idOf = (n: GraphNode) => `${n.context}.${n.id}`;
 
@@ -119,28 +140,55 @@ function assignColumns(graph: EventGraph): Map<string, number> {
 
 export function computeLayout(graph: EventGraph): LayoutNode[] {
   const columns = assignColumns(graph);
-  const usedSlots = new Map<string, number>();
 
-  return graph.getAllNodes().map(node => {
-    const id = idOf(node);
-    const swimlane = SWIMLANE_ORDER[node.type] ?? SWIMLANE_LABELS.length - 1;
-    const column = columns.get(id) ?? 0;
+  const placed = graph.getAllNodes().map(node => ({
+    node,
+    id: idOf(node),
+    swimlane: SWIMLANE_ORDER[node.type] ?? SWIMLANE_LABELS.length - 1,
+    column: columns.get(idOf(node)) ?? 0,
+    width: nodeWidth(node.label),
+  }));
 
-    // Two nodes of the same type in the same column would overlap, so the
-    // second one steps sideways by a fraction of a column.
-    const slotKey = `${swimlane}:${column}`;
-    const slot = usedSlots.get(slotKey) ?? 0;
-    usedSlots.set(slotKey, slot + 1);
+  /*
+   * Several nodes can share one lane of one column — three screens showing the
+   * same read-model, say. They sit side by side, so the column has to be wide
+   * enough for the busiest lane in it. Sizing every column that way keeps the
+   * vertical alignment that makes a swimlane readable: a command still lines up
+   * with the event it produces, however crowded a neighbouring lane gets.
+   */
+  const cellWidth = new Map<number, Map<number, number>>();
+  for (const p of placed) {
+    const lanes = cellWidth.get(p.column) ?? new Map<number, number>();
+    lanes.set(p.swimlane, (lanes.get(p.swimlane) ?? -NODE_SPACING) + p.width + NODE_SPACING);
+    cellWidth.set(p.column, lanes);
+  }
+
+  const lastColumn = Math.max(0, ...placed.map(p => p.column));
+  const columnX: number[] = [];
+  let x = 0;
+  for (let column = 0; column <= lastColumn; column++) {
+    columnX[column] = x;
+    const lanes = cellWidth.get(column);
+    const widest = Math.max(NODE_WIDTH, ...(lanes ? [...lanes.values()] : []));
+    x += widest + NODE_SPACING;
+  }
+
+  const cellOffset = new Map<string, number>();
+  return placed.map(p => {
+    const key = `${p.swimlane}:${p.column}`;
+    const offset = cellOffset.get(key) ?? 0;
+    cellOffset.set(key, offset + p.width + NODE_SPACING);
 
     return {
-      id,
-      label: node.label,
-      type: node.type,
-      context: node.context,
-      swimlane,
-      x: column * (NODE_WIDTH + NODE_SPACING) + slot * (NODE_WIDTH / 3),
-      y: swimlane * SWIMLANE_HEIGHT + slot * 26,
-      data: node.data,
+      id: p.id,
+      label: p.node.label,
+      type: p.node.type,
+      context: p.node.context,
+      swimlane: p.swimlane,
+      x: columnX[p.column] + offset,
+      y: p.swimlane * SWIMLANE_HEIGHT,
+      width: p.width,
+      data: p.node.data,
     };
   });
 }

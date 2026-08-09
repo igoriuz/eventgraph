@@ -10,7 +10,7 @@ body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMac
 .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 .canvas { padding: 24px; overflow: auto; min-height: calc(100vh - 90px); position: relative; }
 .swimlane-label { position: absolute; left: 16px; color: #555; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
-.node { position: absolute; padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s; }
+.node { position: absolute; padding: 6px 14px; text-align: center; overflow: hidden; text-overflow: ellipsis; border-radius: 6px; font-size: 11px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s; }
 .node:hover { transform: scale(1.05); z-index: 10; }
 .node[data-type="command"] { background: #3b82f6; color: white; box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
 .node[data-type="event"] { background: #f59e0b; color: #000; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }

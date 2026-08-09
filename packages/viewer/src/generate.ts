@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { EventGraph } from '@eventgraph/core';
-import { computeFullLayout, NODE_WIDTH, SWIMLANE_HEIGHT } from './layout.js';
+import { computeFullLayout, SWIMLANE_HEIGHT } from './layout.js';
 
 export function generateViewerHtml(graph: EventGraph, projectName: string): string {
   const layout = computeFullLayout(graph);
@@ -9,17 +9,19 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
   const js = readFileSync(join(import.meta.dirname, 'templates', 'viewer.js'), 'utf-8');
   const contexts = graph.getContexts();
 
-  const NODE_LEFT_OFFSET = 100;
+  // Wide enough that the longest lane label ("Aggregates & Rules") clears the
+  // first node in its row.
+  const NODE_LEFT_OFFSET = 155;
 
   const nodeElements = layout.nodes.map(n => {
     const left = NODE_LEFT_OFFSET + n.x;
     const top = 24 + n.y;
-    return `<div class="node" data-type="${n.type}" data-id="${n.id}" data-context="${n.context}" style="left:${left}px;top:${top}px">${n.label}</div>`;
+    return `<div class="node" data-type="${n.type}" data-id="${n.id}" data-context="${n.context}" style="left:${left}px;top:${top}px;width:${n.width}px">${n.label}</div>`;
   }).join('\n');
 
   const nodePositions = new Map(layout.nodes.map(n => [
     n.id,
-    { x: NODE_LEFT_OFFSET + n.x + NODE_WIDTH / 2, y: 24 + n.y + 18 },
+    { x: NODE_LEFT_OFFSET + n.x + n.width / 2, y: 24 + n.y + 18 },
   ]));
 
   const edgeLines = layout.edges.map(e => {
@@ -41,7 +43,7 @@ export function generateViewerHtml(graph: EventGraph, projectName: string): stri
   ).join('\n');
 
   const canvasHeight = (layout.swimlanes.length + 1) * SWIMLANE_HEIGHT;
-  const maxX = Math.max(...layout.nodes.map(n => n.x + NODE_LEFT_OFFSET + 200), 800);
+  const maxX = Math.max(...layout.nodes.map(n => n.x + n.width + NODE_LEFT_OFFSET + 40), 800);
 
   return `<!DOCTYPE html>
 <html lang="en">
