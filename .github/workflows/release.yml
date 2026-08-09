@@ -26,13 +26,19 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      # Deliberately no registry-url: with it, setup-node writes an .npmrc
+      # containing _authToken=${NODE_AUTH_TOKEN} and substitutes a placeholder
+      # when that variable is unset. npm then believes it holds a credential,
+      # never attempts the OIDC handshake, and the registry answers the
+      # resulting anonymous PUT with a misleading 404.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
-      # Trusted publishing needs a recent npm; the one bundled with node is older.
+      # Trusted publishing needs npm 11.5.1 or newer; node 22 ships npm 10.
       - run: npm install -g npm@latest
+
+      - run: npm --version
 
       - run: pnpm install --frozen-lockfile
 
