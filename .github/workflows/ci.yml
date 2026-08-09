@@ -26,11 +26,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Packages reference each other through their built type declarations, so
+      # nothing can be typechecked or run before this.
+      - name: Build
+        run: pnpm build
+
       - name: Typecheck
         run: pnpm lint
 
       - name: Test
         run: pnpm test
-
-      - name: Build
-        run: pnpm build
