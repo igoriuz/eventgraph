@@ -1,0 +1,61 @@
+name: release
+
+# Publishes every package at the version in its package.json. Tag a release
+# (git tag v0.2.0 && git push --tags) or run it by hand.
+#
+# There is no NPM_TOKEN. Publishing authenticates over OIDC via npm trusted
+# publishing, so the credential is minted per run, scoped to this repository and
+# this workflow file, and cannot be reused if it leaks. That has to be armed
+# once per package under Settings → Trusted publishers on npmjs.com, naming
+# this file — and a package has to exist before it can be configured, so the
+# first version of each is published by hand.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets the runner mint the OIDC token npm checks
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs a recent npm; the one bundled with node is older.
+      - run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm lint
+
+      - run: pnpm test
+
+      # pnpm pack rewrites the workspace:* ranges into real versions, which
+      # `npm publish` on a directory would not do. Publishing the tarball keeps
+      # that rewrite and still authenticates over OIDC.
+      - name: Pack
+        run: |
+          mkdir -p /tmp/tarballs
+          for pkg in core viewer cli mcp; do
+            pnpm --filter "./packages/$pkg" pack --pack-destination /tmp/tarballs
+          done
+          ls -la /tmp/tarballs
+
+      - name: Publish
+        run: |
+          for tarball in /tmp/tarballs/*.tgz; do
+            echo "publishing $tarball"
+            npm publish "$tarball" --access public --provenance
+          done
