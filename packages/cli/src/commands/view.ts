@@ -2,8 +2,8 @@ import { Command } from 'commander';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { exec } from 'node:child_process';
-import { generateViewerHtml } from '@eventgraph/viewer';
-import { neighbourhood, sliceGraph, subgraph, resolveId, type EventGraph } from '@eventgraph/core';
+import { generateViewerHtml } from 'eventgraph-viewer';
+import { neighbourhood, sliceGraph, subgraph, resolveId, type EventGraph } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 interface ViewOptions {

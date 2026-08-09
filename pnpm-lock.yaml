@@ -23,10 +23,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@eventgraph/core':
+      'eventgraph-core':
         specifier: workspace:*
         version: link:../core
-      '@eventgraph/viewer':
+      'eventgraph-viewer':
         specifier: workspace:*
         version: link:../viewer
       commander:
@@ -58,10 +58,10 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@eventgraph/core':
+      'eventgraph-core':
         specifier: workspace:*
         version: link:../core
-      '@eventgraph/viewer':
+      'eventgraph-viewer':
         specifier: workspace:*
         version: link:../viewer
       '@modelcontextprotocol/sdk':
@@ -80,7 +80,7 @@ importers:
 
   packages/viewer:
     dependencies:
-      '@eventgraph/core':
+      'eventgraph-core':
         specifier: workspace:*
         version: link:../core
       elkjs:
@@ -93,7 +93,7 @@ importers:
 
   site:
     dependencies:
-      '@eventgraph/cli':
+      'eventgraph-cli':
         specifier: workspace:*
         version: link:../packages/cli
       astro:

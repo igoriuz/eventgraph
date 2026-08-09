@@ -10,6 +10,6 @@
   },
   "dependencies": {
     "astro": "^7.2.0",
-    "@eventgraph/cli": "workspace:*"
+    "eventgraph-cli": "workspace:*"
   }
 }

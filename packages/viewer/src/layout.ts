@@ -1,4 +1,4 @@
-import type { EventGraph, GraphNode } from '@eventgraph/core';
+import type { EventGraph, GraphNode } from 'eventgraph-core';
 
 export interface LayoutNode {
   id: string;

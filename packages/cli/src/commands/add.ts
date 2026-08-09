@@ -1,6 +1,6 @@
 import { Command } from 'commander';
-import { addNodeToContext, loadConfig, findProjectDir } from '@eventgraph/core';
-import type { ContextModelNode } from '@eventgraph/core';
+import { addNodeToContext, loadConfig, findProjectDir } from 'eventgraph-core';
+import type { ContextModelNode } from 'eventgraph-core';
 
 /**
  * Flag values are typed the way they read: `true`, `false` and numbers become

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { analyzeImpact } from '@eventgraph/core';
+import { analyzeImpact } from 'eventgraph-core';
 import { loadOrFail, formatNode } from '../util.js';
 
 export function registerImpactCommand(program: Command): void {

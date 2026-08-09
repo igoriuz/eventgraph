@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { lifecycle, slice, type GraphNode } from '@eventgraph/core';
+import { lifecycle, slice, type GraphNode } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 const lane = (name: string, nodes: GraphNode[]) => {

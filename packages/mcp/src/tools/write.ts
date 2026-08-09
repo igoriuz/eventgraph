@@ -6,7 +6,7 @@ import {
   removeNodeFromContext,
   generateYamlDiff,
   analyzeImpact,
-} from '@eventgraph/core';
+} from 'eventgraph-core';
 
 interface WriteResult {
   success: boolean;

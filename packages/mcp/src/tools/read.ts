@@ -13,7 +13,7 @@ import {
   lifecycle,
   type Finding,
   type Lane,
-} from '@eventgraph/core';
+} from 'eventgraph-core';
 
 export interface ReadToolsApi {
   eventgraph_query(input: { expr: string }): Promise<{ nodes: GraphNode[] }>;

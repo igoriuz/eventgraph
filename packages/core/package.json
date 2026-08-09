@@ -1,5 +1,5 @@
 {
-  "name": "@eventgraph/core",
+  "name": "eventgraph-core",
   "version": "0.1.0",
   "description": "The graph model, completeness rules and source scaffolding behind the eventgraph CLI.",
   "keywords": [
@@ -40,8 +40,5 @@
     "dist",
     "README.md",
     "LICENSE"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
+  ]
 }

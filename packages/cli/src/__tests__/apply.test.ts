@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parse as parseYaml } from 'yaml';
-import { parseContextModel } from '@eventgraph/core';
+import { parseContextModel } from 'eventgraph-core';
 import { tryCli, type CliResult } from './cli-runner.js';
 
 const TMP = join(tmpdir(), 'eventgraph-apply-test-' + Date.now());

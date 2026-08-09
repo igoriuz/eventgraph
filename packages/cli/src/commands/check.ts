@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { checkGraph, loadPreset, ruleCatalog, unknownRuleIds, type Finding, type Lane } from '@eventgraph/core';
+import { checkGraph, loadPreset, ruleCatalog, unknownRuleIds, type Finding, type Lane } from 'eventgraph-core';
 import { loadOrFail, presetsDir } from '../util.js';
 
 const LANES: Lane[] = ['bootstrap', 'structure', 'ux', 'backend', 'platform'];

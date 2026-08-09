@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { QueryEngine } from '@eventgraph/core';
+import { QueryEngine } from 'eventgraph-core';
 import { loadOrFail, formatNode } from '../util.js';
 
 export function registerQueryCommand(program: Command): void {

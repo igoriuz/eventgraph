@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import { findProjectDir, isCompactModel, loadConfig, rewriteContextCompact } from '@eventgraph/core';
+import { findProjectDir, isCompactModel, loadConfig, rewriteContextCompact } from 'eventgraph-core';
 
 /**
  * Converts contexts from the original list form to the compact one.

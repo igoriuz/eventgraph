@@ -1,10 +1,10 @@
-# @eventgraph/cli
+# eventgraph-cli
 
 Model an application as a queryable graph instead of a diagram nobody
 maintains. This package is the CLI; the command it installs is `eventgraph`.
 
 ```
-npm install -g @eventgraph/cli
+npm install -g eventgraph-cli
 eventgraph init --yes
 eventgraph check --next 3
 ```

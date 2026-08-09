@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createWriteTools } from '../tools/write.js';
-import { loadProject } from '@eventgraph/core';
+import { loadProject } from 'eventgraph-core';
 import { parse as parseYaml } from 'yaml';
 
 const TMP = join(tmpdir(), 'eventgraph-write-test-' + Date.now());

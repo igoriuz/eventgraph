@@ -1,11 +1,11 @@
-# @eventgraph/core
+# eventgraph-core
 
 The graph model, completeness rules and source scaffolding behind the
-[`@eventgraph/cli`](https://www.npmjs.com/package/@eventgraph/cli) CLI. Install the CLI
+[`eventgraph-cli`](https://www.npmjs.com/package/eventgraph-cli) CLI. Install the CLI
 unless you are building your own tooling on top of the model.
 
 ```ts
-import { EventGraph, parseContextModel, checkGraph, QueryEngine } from '@eventgraph/core';
+import { EventGraph, parseContextModel, checkGraph, QueryEngine } from 'eventgraph-core';
 ```
 
 What lives here:

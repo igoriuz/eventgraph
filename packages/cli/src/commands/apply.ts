@@ -17,7 +17,7 @@ import {
   type ContextModelNode,
   type GraphEdge,
   type ProjectConfig,
-} from '@eventgraph/core';
+} from 'eventgraph-core';
 import { presetsDir } from '../util.js';
 
 /**

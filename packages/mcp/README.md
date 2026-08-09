@@ -1,4 +1,4 @@
-# @eventgraph/mcp
+# eventgraph-mcp
 
 An MCP server that lets an agent read, check and write an
 [eventgraph](https://github.com/igoriuz/eventgraph) model without shelling out
@@ -9,7 +9,7 @@ to the CLI.
   "mcpServers": {
     "eventgraph": {
       "command": "npx",
-      "args": ["-y", "@eventgraph/mcp"]
+      "args": ["-y", "eventgraph-mcp"]
     }
   }
 }

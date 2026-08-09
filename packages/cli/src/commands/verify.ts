@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { resolve } from 'node:path';
-import { verifyImplementations, verifyRejectionHandling } from '@eventgraph/core';
+import { verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 /**

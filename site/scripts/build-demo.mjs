@@ -17,8 +17,8 @@ const demo = join(site, 'demo');
 // The site depends on the CLI as a workspace package, so resolve its bin the
 // way any consumer would rather than reaching across the repo by path.
 const require_ = createRequire(import.meta.url);
-const manifest = require_('@eventgraph/cli/package.json');
-const cli = join(require_.resolve('@eventgraph/cli/package.json'), '..', manifest.bin.eventgraph);
+const manifest = require_('eventgraph-cli/package.json');
+const cli = join(require_.resolve('eventgraph-cli/package.json'), '..', manifest.bin.eventgraph);
 
 if (!existsSync(cli)) {
   console.error(`Missing ${cli} — run \`pnpm build\` in the repo root first.`);

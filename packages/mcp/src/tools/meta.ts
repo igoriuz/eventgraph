@@ -5,8 +5,8 @@ import {
   type EventGraph,
   type ProjectConfig,
   loadConfig,
-} from '@eventgraph/core';
-import { generateViewerHtml } from '@eventgraph/viewer';
+} from 'eventgraph-core';
+import { generateViewerHtml } from 'eventgraph-viewer';
 
 export interface MetaToolsApi {
   eventgraph_view(input: Record<string, never>): Promise<{ path: string }>;

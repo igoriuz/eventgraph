@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EventGraph } from '@eventgraph/core';
+import { EventGraph } from 'eventgraph-core';
 import { computeLayout, SWIMLANE_LABELS, nodeWidth } from '../layout.js';
 
 describe('computeLayout', () => {

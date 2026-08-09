@@ -374,7 +374,7 @@ mode in the project config (`prompt`, `auto` or `locked`).
 ```
 pnpm install
 npx vitest run                     the whole suite
-pnpm --filter @eventgraph/core build
+pnpm --filter eventgraph-core build
 ```
 
 Packages: `core` (graph, rules, projections, verify), `cli`, `mcp`, `viewer`.

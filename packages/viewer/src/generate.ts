@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { EventGraph } from '@eventgraph/core';
+import type { EventGraph } from 'eventgraph-core';
 import { computeFullLayout, SWIMLANE_HEIGHT } from './layout.js';
 
 export function generateViewerHtml(graph: EventGraph, projectName: string): string {

@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createReadTools } from '../tools/read.js';
-import { loadProject } from '@eventgraph/core';
+import { loadProject } from 'eventgraph-core';
 
 const TMP = join(tmpdir(), 'eventgraph-mcp-test-' + Date.now());
 

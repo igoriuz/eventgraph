@@ -64,13 +64,14 @@ jobs:
           ls -la /tmp/tarballs
           test "$(ls -1 /tmp/tarballs/*.tgz | wc -l)" -eq 4
 
-      # Bootstrap only. A trusted publisher cannot be registered for a package
-      # that does not exist yet, so the first version of each needs a token —
-      # a granular one, scoped to this org, with "Bypass two-factor
-      # authentication" enabled, which is what makes it work for an account
-      # secured with passkeys. Once every package exists and its trusted
-      # publisher is registered on npmjs.com, delete the NPM_TOKEN secret and
-      # this step: OIDC then authenticates with nothing stored anywhere.
+      # Bootstrap only. A trusted publisher is registered per package and a
+      # package has to exist first, so version 0.1.0 cannot be published by
+      # OIDC alone. Use a granular token limited to these four packages with
+      # "Bypass two-factor authentication" enabled — that box is what makes it
+      # work at all for an account secured with passkeys, which have no OTP to
+      # type. Once each package exists and its trusted publisher is registered
+      # on npmjs.com, delete the NPM_TOKEN secret and this step: OIDC then
+      # authenticates with nothing stored anywhere.
       - name: Authenticate for the first publish
         if: env.NPM_TOKEN != ''
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc

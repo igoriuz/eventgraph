@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { addEdgeToContext, findProjectDir, loadConfig } from '@eventgraph/core';
+import { addEdgeToContext, findProjectDir, loadConfig } from 'eventgraph-core';
 
 export function registerConnectCommand(program: Command): void {
   program

@@ -2,7 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { findProjectDir, loadProject } from '@eventgraph/core';
+import { findProjectDir, loadProject } from 'eventgraph-core';
 import { createReadTools } from './tools/read.js';
 import { createWriteTools } from './tools/write.js';
 import { createMetaTools } from './tools/meta.js';

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { loadPreset, validateGraph } from '@eventgraph/core';
+import { loadPreset, validateGraph } from 'eventgraph-core';
 import { loadOrFail, presetsDir } from '../util.js';
 
 export function registerValidateCommand(program: Command): void {

@@ -1,5 +1,5 @@
 {
-  "name": "@eventgraph/viewer",
+  "name": "eventgraph-viewer",
   "version": "0.1.0",
   "description": "Renders an eventgraph model as a self-contained interactive HTML page.",
   "keywords": [
@@ -34,7 +34,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@eventgraph/core": "workspace:*",
+    "eventgraph-core": "workspace:*",
     "elkjs": "^0.12.0"
   },
   "devDependencies": {
@@ -44,8 +44,5 @@
     "dist",
     "README.md",
     "LICENSE"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
+  ]
 }

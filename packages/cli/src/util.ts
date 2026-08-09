@@ -1,4 +1,4 @@
-import { findProjectDir, loadProject, type ProjectConfig, type EventGraph } from '@eventgraph/core';
+import { findProjectDir, loadProject, type ProjectConfig, type EventGraph } from 'eventgraph-core';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 

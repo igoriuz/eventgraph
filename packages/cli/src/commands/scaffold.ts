@@ -6,7 +6,7 @@ import {
   stringifyContextModel,
   EXTRACTORS,
   type Extractor,
-} from '@eventgraph/core';
+} from 'eventgraph-core';
 
 /**
  * Emits a partial model to stdout rather than writing it, so the usual shape is
