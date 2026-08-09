@@ -93,12 +93,12 @@ importers:
 
   site:
     dependencies:
+      '@eventgraph/cli':
+        specifier: workspace:*
+        version: link:../packages/cli
       astro:
         specifier: ^7.2.0
         version: 7.2.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@26.1.1)(tsx@4.23.11)(yaml@2.9.0)
-      eventgraph:
-        specifier: workspace:*
-        version: link:../packages/cli
 
 packages:
 

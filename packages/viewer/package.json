@@ -2,7 +2,12 @@
   "name": "@eventgraph/viewer",
   "version": "0.1.0",
   "description": "Renders an eventgraph model as a self-contained interactive HTML page.",
-  "keywords": ["event-modeling", "architecture", "graph", "visualisation"],
+  "keywords": [
+    "event-modeling",
+    "architecture",
+    "graph",
+    "visualisation"
+  ],
   "homepage": "https://igoriuz.github.io/eventgraph",
   "repository": {
     "type": "git",
@@ -25,7 +30,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && rm -rf dist/templates && cp -r src/templates dist/templates",
+    "build": "tsc -p tsconfig.build.json && rm -rf dist/templates && cp -r src/templates dist/templates",
     "test": "vitest run"
   },
   "dependencies": {
@@ -39,5 +44,8 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

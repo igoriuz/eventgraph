@@ -2,7 +2,14 @@
   "name": "@eventgraph/mcp",
   "version": "0.1.0",
   "description": "MCP server that lets an agent read, check and write an eventgraph model.",
-  "keywords": ["event-modeling", "architecture", "graph", "mcp", "model-context-protocol", "agent"],
+  "keywords": [
+    "event-modeling",
+    "architecture",
+    "graph",
+    "mcp",
+    "model-context-protocol",
+    "agent"
+  ],
   "homepage": "https://igoriuz.github.io/eventgraph",
   "repository": {
     "type": "git",
@@ -22,7 +29,7 @@
     "eventgraph-mcp": "dist/server.js"
   },
   "scripts": {
-    "build": "tsc && rm -rf dist/presets && cp -r ../../presets dist/presets",
+    "build": "tsc -p tsconfig.build.json && rm -rf dist/presets && cp -r ../../presets dist/presets",
     "test": "vitest run"
   },
   "dependencies": {
@@ -39,5 +46,8 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -2,7 +2,14 @@
   "name": "@eventgraph/core",
   "version": "0.1.0",
   "description": "The graph model, completeness rules and source scaffolding behind the eventgraph CLI.",
-  "keywords": ["event-modeling", "event-sourcing", "architecture", "ddd", "cqrs", "graph"],
+  "keywords": [
+    "event-modeling",
+    "event-sourcing",
+    "architecture",
+    "ddd",
+    "cqrs",
+    "graph"
+  ],
   "homepage": "https://igoriuz.github.io/eventgraph",
   "repository": {
     "type": "git",
@@ -19,7 +26,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run"
   },
   "dependencies": {
@@ -33,5 +40,8 @@
     "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

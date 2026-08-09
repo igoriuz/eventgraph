@@ -1,7 +1,7 @@
 # @eventgraph/core
 
 The graph model, completeness rules and source scaffolding behind the
-[`eventgraph`](https://www.npmjs.com/package/eventgraph) CLI. Install the CLI
+[`@eventgraph/cli`](https://www.npmjs.com/package/@eventgraph/cli) CLI. Install the CLI
 unless you are building your own tooling on top of the model.
 
 ```ts
