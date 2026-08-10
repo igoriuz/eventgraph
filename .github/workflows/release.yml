@@ -1,28 +1,30 @@
 name: release
 
-# Publishes every package at the version in its package.json. Tag a release
-# (git tag v0.2.0 && git push --tags) or run it by hand.
+# A tag is the only thing that releases. Push one and this builds, tests,
+# publishes to npm whatever version is not on the registry yet, and writes the
+# GitHub release for that tag — so the tag, the release and the published
+# versions can never disagree with each other.
+#
+#   git tag v0.2.0 && git push origin v0.2.0
+#
+# Cutting a release from the GitHub UI works too: it creates the tag, which is
+# the same event, and the release notes are then filled in by the run.
 #
 # There is no NPM_TOKEN. Publishing authenticates over OIDC via npm trusted
 # publishing, so the credential is minted per run, scoped to this repository and
-# this workflow file, and cannot be reused if it leaks. That has to be armed
-# once per package under Settings → Trusted publishers on npmjs.com, naming
-# this file — and a package has to exist before it can be configured, so the
-# first version of each is published by hand.
+# this workflow file, and cannot be reused if it leaks. It is armed per package
+# under Settings → Trusted publishers on npmjs.com, naming this file.
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # to write the release for the tag
   id-token: write # lets the runner mint the OIDC token npm checks
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,32 +66,53 @@ jobs:
           ls -la /tmp/tarballs
           test "$(ls -1 /tmp/tarballs/*.tgz | wc -l)" -eq 4
 
-      # Bootstrap only. A trusted publisher is registered per package and a
-      # package has to exist first, so version 0.1.0 cannot be published by
-      # OIDC alone. Use a granular token limited to these four packages with
-      # "Bypass two-factor authentication" enabled — that box is what makes it
-      # work at all for an account secured with passkeys, which have no OTP to
-      # type. Once each package exists and its trusted publisher is registered
-      # on npmjs.com, delete the NPM_TOKEN secret and this step: OIDC then
-      # authenticates with nothing stored anywhere.
-      - name: Authenticate for the first publish
-        if: env.NPM_TOKEN != ''
-        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc
-
       # Only some packages change in a given release, and republishing a version
       # that already exists is an error that would abort the rest of the loop.
+      # The lines written here become the body of the GitHub release, so what it
+      # claims was shipped is what npm actually accepted.
       - name: Publish what is new
         run: |
           published=0
+          : > /tmp/published.md
           for tarball in /tmp/tarballs/*.tgz; do
-            name=$(tar -xzOf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).name')
-            version=$(tar -xzOf "$tarball" package/package.json | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version')
+            meta=$(tar -xzOf "$tarball" package/package.json)
+            name=$(node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).name' <<< "$meta")
+            version=$(node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).version' <<< "$meta")
             if npm view "$name@$version" version > /dev/null 2>&1; then
               echo "skipping $name@$version — already on the registry"
               continue
             fi
             echo "publishing $name@$version"
             npm publish "$tarball" --access public --provenance
+            echo "- [\`$name@$version\`](https://www.npmjs.com/package/$name/v/$version)" >> /tmp/published.md
             published=$((published + 1))
           done
           echo "published $published package(s)"
+          if [ "$published" -eq 0 ]; then
+            echo 'Nothing new on npm — every package at this tag was already published.' > /tmp/published.md
+          fi
+
+      # Written after the publish, never before: a release that exists while the
+      # registry does not have the packages is the one lie this is meant to
+      # prevent. `--generate-notes` appends the commit log since the last tag.
+      - name: Write the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          {
+            echo '### Published'
+            echo
+            cat /tmp/published.md
+          } > /tmp/notes.md
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file /tmp/notes.md
+            gh release upload "$TAG" /tmp/tarballs/*.tgz --clobber
+          else
+            # --notes rather than --notes-file: only the former is prepended to
+            # the generated notes, a file would replace them.
+            gh release create "$TAG" /tmp/tarballs/*.tgz \
+              --title "$TAG" \
+              --notes "$(cat /tmp/notes.md)" \
+              --generate-notes
+          fi
