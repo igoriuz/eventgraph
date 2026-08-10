@@ -160,8 +160,15 @@ pre {
   border-top: 2px solid var(--ink);
   padding-top: 0.6rem;
   align-self: start;
-  position: sticky;
-  top: 1.5rem;
+}
+
+/* Sticky only once the rail has a column of its own — in the single-column
+ * layout it would scroll over the section it is labelling. */
+@media (min-width: 60rem) {
+  .rail {
+    position: sticky;
+    top: 1.5rem;
+  }
 }
 
 .rail b {

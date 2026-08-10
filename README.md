@@ -364,6 +364,20 @@ survive it.
 
 ## MCP
 
+```
+npm install -g eventgraph-mcp
+
+claude mcp add eventgraph -- eventgraph-mcp        Claude Code, this machine
+claude mcp add -s project eventgraph -- eventgraph-mcp   committed as .mcp.json
+```
+
+Other clients take the same command through their own config — the common
+`mcpServers` block (Cursor, Windsurf, Zed, Claude Desktop), `servers` in
+`.vscode/mcp.json`, or `[mcp_servers.eventgraph]` in `~/.codex/config.toml`.
+Anything that can run a stdio command works; there is no environment, token or
+port. The server finds the project by walking up from the directory it is
+started in, so register it per repository.
+
 The server exposes the read side to agents: `eventgraph_query`,
 `eventgraph_impact`, `eventgraph_slice`, `eventgraph_lifecycle`,
 `eventgraph_check`, `eventgraph_validate`, plus writes gated by the `agent.write`

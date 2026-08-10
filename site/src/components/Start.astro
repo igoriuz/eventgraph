@@ -19,23 +19,99 @@ eventgraph scaffold | eventgraph apply -
 eventgraph check --next 3         the most pressing gaps, in order`}</pre>
 
       <p class="after">
-        Then the loop is <code>check --next</code> → fill one gap →
-        <code>check</code> → repeat, until the only findings left are the ones
-        you have deliberately answered.
+        Then the loop is <code>check --next</code> → fill one gap → <code>check</code> →
+        repeat, until the only findings left are the ones you have deliberately
+        answered.
       </p>
 
-      <h3>For an agent</h3>
+      <h3>Then hand it to an agent</h3>
       <p>
         The same model over MCP, so an agent can query, check and write it
         without shelling out. Whether writes apply directly or come back as a
         diff to approve is the project's call, via <code>agent.write</code>.
       </p>
 
-      <pre>{`{
+      <pre>{`npm install -g eventgraph-mcp`}</pre>
+
+      <p class="after">
+        The server has no configuration of its own — it finds the project by
+        walking up from the directory it is started in, the same way the CLI
+        does. So register it per project, from the repository root, and every
+        client below launches it with the right model already loaded.
+      </p>
+
+      <dl class="clients">
+        <div class="client">
+          <dt>Claude Code</dt>
+          <dd>
+            <pre>{`claude mcp add eventgraph -- eventgraph-mcp`}</pre>
+            <p>
+              That writes it to your own machine only. Add <code>--scope project</code> to
+              write <code>.mcp.json</code> in the repository instead, so
+              everyone working on it gets the same server. <code>claude mcp list</code> confirms
+              it connected.
+            </p>
+          </dd>
+        </div>
+
+        <div class="client">
+          <dt>Codex CLI</dt>
+          <dd>
+            <pre>{`[mcp_servers.eventgraph]
+command = "eventgraph-mcp"`}</pre>
+            <p>
+              In <code>~/.codex/config.toml</code>. Note the underscore — Codex
+              spells the key differently from everyone else.
+            </p>
+          </dd>
+        </div>
+
+        <div class="client">
+          <dt>Cursor · Windsurf · Zed · Claude Desktop</dt>
+          <dd>
+            <p>
+              The common <code>mcpServers</code> block — <code>.cursor/mcp.json</code> for
+              one project, or the client's global config for all of them.
+            </p>
+            <pre>{`{
   "mcpServers": {
-    "eventgraph": { "command": "npx", "args": ["-y", "eventgraph-mcp"] }
+    "eventgraph": { "command": "eventgraph-mcp" }
   }
 }`}</pre>
+          </dd>
+        </div>
+
+        <div class="client">
+          <dt>VS Code · GitHub Copilot</dt>
+          <dd>
+            <p>
+              Same shape, different key, in <code>.vscode/mcp.json</code>:
+            </p>
+            <pre>{`{
+  "servers": {
+    "eventgraph": { "type": "stdio", "command": "eventgraph-mcp" }
+  }
+}`}</pre>
+          </dd>
+        </div>
+
+        <div class="client">
+          <dt>Anything else</dt>
+          <dd>
+            <p>
+              Skip the global install and let the client fetch it: command <code>npx</code>,
+              args <code>["-y", "eventgraph-mcp"]</code>. It speaks stdio and
+              needs no environment, no token and no port.
+            </p>
+          </dd>
+        </div>
+      </dl>
+
+      <p class="after">
+        Once it is connected, <code>eventgraph_check</code> is the tool to loop
+        on — it answers "what is missing", which is the question an agent can
+        act on, rather than "is this legal".
+      </p>
 
       <p class="after last">
         Prefer <code>eventgraph_slice</code> over reading the whole graph. A
@@ -51,8 +127,8 @@ eventgraph check --next 3         the most pressing gaps, in order`}</pre>
     <p class="rail"><b>eventgraph</b>MIT</p>
     <div class="foot-body">
       <p>
-        <a href="https://github.com/igoriuz/eventgraph">Source on GitHub</a> ·
-        <a href="https://www.npmjs.com/package/eventgraph-cli">eventgraph-cli on npm</a>
+        <a href="https://github.com/igoriuz/eventgraph">Source on GitHub</a> · <a
+          href="https://www.npmjs.com/package/eventgraph-cli">eventgraph-cli on npm</a>
       </p>
       <p class="dim small">
         Built by Igor Kazhdan. MIT licensed. This page is generated from the
@@ -74,6 +150,51 @@ eventgraph check --next 3         the most pressing gaps, in order`}</pre>
 
   h3 {
     margin-block: 2.75rem 0.6rem;
+  }
+
+  /* One client per row: its name in a rail, its setup to the right. */
+  .clients {
+    margin: 1.75rem 0 0;
+    display: grid;
+    gap: 1.6rem;
+  }
+
+  .client {
+    display: grid;
+    gap: 0.35rem 1.25rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid var(--rule-strong);
+  }
+
+  @media (min-width: 56rem) {
+    .client {
+      grid-template-columns: 17rem minmax(0, 1fr);
+    }
+  }
+
+  .clients dt {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--ink);
+  }
+
+  .clients dd {
+    margin: 0;
+    min-width: 0;
+  }
+
+  .clients dd p {
+    font-size: 0.9375rem;
+    color: var(--ink-soft);
+    margin: 0.55rem 0 0;
+  }
+
+  .clients dd pre {
+    margin: 0;
+  }
+
+  .clients dd p + pre {
+    margin-top: 0.55rem;
   }
 
   .last {
