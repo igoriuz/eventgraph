@@ -2,11 +2,14 @@
 import rules from '../generated/rules.json';
 
 const lanes = new Set((rules as { lane: string }[]).map(r => r.lane));
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
 <header class="hero">
   <nav class="topbar">
-    <p class="wordmark">eventgraph</p>
+    <p class="wordmark">
+      <img src={`${base}/mark.svg`} alt="" width="18" height="18" />eventgraph
+    </p>
     <a href="https://github.com/igoriuz/eventgraph">GitHub</a>
   </nav>
 
@@ -109,15 +112,13 @@ const lanes = new Set((rules as { lane: string }[]).map(r => r.lane));
     font-size: 0.8125rem;
     letter-spacing: 0.02em;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
   }
 
-  .wordmark::before {
-    content: '';
-    display: inline-block;
-    width: 9px;
-    height: 9px;
-    margin-right: 0.6rem;
-    background: var(--accent-bright);
+  .wordmark img {
+    display: block;
   }
 
   .hero-inner {

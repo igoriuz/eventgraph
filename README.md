@@ -1,4 +1,9 @@
-# eventgraph
+<p align="center">
+  <a href="https://igoriuz.github.io/eventgraph">
+    <img src="site/public/og.png" width="680"
+         alt="eventgraph — Find the gaps a review cannot see." />
+  </a>
+</p>
 
 Model an application as a queryable graph instead of a diagram nobody maintains.
 
