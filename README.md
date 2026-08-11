@@ -7,6 +7,33 @@
 
 Model an application as a queryable graph instead of a diagram nobody maintains.
 
+Built for agents as much as for people. The model is a file an agent can query
+and write, and `check` asks *which relationship is missing* rather than *does
+this look right* — a question with an answer, so the loop needs no taste and no
+screenshot.
+
+## Install
+
+```bash
+npx eventgraph-cli init           # scaffold a project, nothing to install
+npm install -g eventgraph-cli     # or keep the CLI around
+
+eventgraph check --next 3         # the gaps worth closing first
+eventgraph slice <event>          # the flow around one event
+```
+
+## Give it to your agent
+
+```bash
+npm install -g eventgraph-mcp
+claude mcp add eventgraph -- eventgraph-mcp
+```
+
+The server has no configuration of its own — it finds the project by walking up
+from wherever it starts, so register it per repository. Every other client takes
+the same stdio command; [MCP](#mcp) covers Codex, Cursor, Zed and the tools it
+exposes.
+
 The premise: event modeling is right about the *shape* of a flow — actor →
 command → event → read-model → screen — and wrong about the *storage*. A
 swimlane board is a view, not a data structure, which is why it fragments once
