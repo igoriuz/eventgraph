@@ -3,7 +3,7 @@ import type { GraphNode } from '../schema.js';
 import { qualifiedId } from '../schema.js';
 
 export type Severity = 'error' | 'warn';
-export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend';
+export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend' | 'headless';
 
 export interface Finding {
   rule: string;
@@ -98,19 +98,36 @@ export function hasFlag(node: GraphNode, key: string): boolean {
 /**
  * A `screen` is really the outside edge of the system: where an actor touches
  * it and where feedback lands. In an app that edge is a view; in a backend it
- * is an HTTP endpoint, a queue consumer or a scheduled worker. Same position
- * in the graph, so it stays one node type discriminated by `data.kind`.
+ * is an HTTP endpoint, a queue consumer or a scheduled worker; for an agent or
+ * a script it is a CLI subcommand or an agent tool. Same position in the
+ * graph, so it stays one node type discriminated by `data.kind`.
  */
-export const SURFACE_KINDS = ['screen', 'notification', 'widget', 'endpoint', 'consumer', 'job'] as const;
+export const SURFACE_KINDS = ['screen', 'notification', 'widget', 'endpoint', 'consumer', 'job', 'cli', 'tool'] as const;
 
-/** Surfaces that exist in a backend rather than in front of a human. */
+/**
+ * Surfaces that exist in a backend rather than in front of a human.
+ *
+ * `cli` and `tool` are deliberately not among them: an app that ships a CLI or
+ * an MCP server next to its UI is still an app, and declaring one must not
+ * start the backend lane asking about idempotency and consistency windows.
+ */
 export const BACKEND_KINDS: readonly string[] = ['endpoint', 'consumer', 'job'];
 
 /**
  * Surfaces on which an actor can actually observe an outcome. A consumer or a
- * job runs unattended, so routing feedback there means nobody sees it.
+ * job runs unattended, so routing feedback there means nobody sees it. A CLI
+ * subcommand and an agent tool answer their caller, as an endpoint does.
  */
-export const OBSERVABLE_KINDS: readonly string[] = ['screen', 'notification', 'widget', 'endpoint'];
+export const OBSERVABLE_KINDS: readonly string[] = ['screen', 'notification', 'widget', 'endpoint', 'cli', 'tool'];
+
+/** Surfaces made for a person to look at. */
+export const HUMAN_KINDS: readonly string[] = ['screen', 'notification', 'widget'];
+
+/**
+ * Surfaces an agent, a script or a test can drive without a UI. An endpoint
+ * counts: anything that can call HTTP can reach it.
+ */
+export const HEADLESS_KINDS: readonly string[] = ['cli', 'tool', 'endpoint'];
 
 export const kindOf = (node: GraphNode): string => flag<string>(node, 'kind') ?? 'screen';
 

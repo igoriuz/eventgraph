@@ -102,8 +102,9 @@ defineRule(
             // A consumer or a job runs unattended, so routing an outcome there
             // is not feedback — nobody is on the other end of it.
             if (!OBSERVABLE_KINDS.includes(kindOf(surface))) continue;
-            // Notifications, widgets and endpoint responses arrive unprompted,
-            // so navigability says nothing about whether they will be seen.
+            // Notifications, widgets, endpoint responses and CLI or tool output
+            // are never navigated to, so navigability says nothing about
+            // whether they will be seen.
             if (isNavigable(surface) && anyEntry && !depths.has(idOf(surface))) continue;
             const seenBy = sources(g, surface, 'sees', 'actor').map(idOf);
             if (seenBy.length === 0 || seenBy.some(a => audience.has(a))) return false;

@@ -87,6 +87,9 @@ rules:
   - read-model-consistency-unstated
   - command-no-rejection
   - failure-silenced
+  # Headless — silent unless the model declares a cli or tool surface
+  - command-ui-only
+  - read-model-ui-only
   # Platform — silent unless eventgraph.yaml declares platforms
   - platform-drift
   - platform-unknown
