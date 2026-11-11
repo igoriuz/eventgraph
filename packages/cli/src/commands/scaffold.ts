@@ -52,8 +52,9 @@ export function registerScaffoldCommand(program: Command): void {
       if (report.model.nodes.length === 0) {
         console.error(`Scanned ${sources.length} file(s) under ${root} and recognised nothing.`);
         console.error(
-          'Supported: HTTP route registrations, file-routed and router-table screens,\n' +
-            'ORM table declarations, and modules that declare commands and events outright.'
+          'Supported: HTTP route registrations, commander subcommands, MCP tools,\n' +
+            'file-routed and router-table screens, ORM table declarations, and modules\n' +
+            'that declare commands and events outright.'
         );
         process.exit(1);
       }
@@ -61,7 +62,7 @@ export function registerScaffoldCommand(program: Command): void {
       // Notes go to stderr so the document on stdout stays pipeable into apply.
       console.error(`Scanned ${sources.length} file(s) under ${root}`);
       for (const note of report.notes) console.error(`  · ${note}`);
-      console.error(`\n${caveat(report.counts.domain > 0)}\nReview, then: eventgraph apply -\n`);
+      console.error(`\n${caveat(report.counts.domain > 0, report.counts.headless > 0)}\nReview, then: eventgraph apply -\n`);
 
       console.log(header(report.model.context, report.counts.domain > 0));
       console.log(stringifyContextModel(report.model));
@@ -74,13 +75,19 @@ export function registerScaffoldCommand(program: Command): void {
  * A module that names its own reducers and events hands over most of the write
  * model; an HTTP service hands over none of it. Saying the same thing in both
  * cases would either undersell the first or overstate the second.
+ *
+ * A CLI subcommand or an agent tool reads like a command and often is not one,
+ * so where any were found the caveat says which half is still open.
  */
-function caveat(hasDomain: boolean): string {
-  return hasDomain
+function caveat(hasDomain: boolean, hasHeadless: boolean): string {
+  const base = hasDomain
     ? 'Commands and events here were read from declarations, not guessed. Policies,\n' +
         'invariants and actors are still the modelling, as is which aggregate each\n' +
         'event belongs to.'
     : 'Commands, events, policies and invariants are not guessed — they are the modelling.';
+  return hasHeadless
+    ? `${base}\nCLI subcommands and tools came out as surfaces; which command each offers is\nmodelling too.`
+    : base;
 }
 
 function header(context: string, hasDomain: boolean): string {

@@ -1,6 +1,7 @@
 import type { ContextModel } from '../schema.js';
 import { extractAggregates } from './aggregates.js';
 import { extractDart } from './dart.js';
+import { extractHeadless } from './headless.js';
 import { extractReactRouter } from './react-router.js';
 import { extractSpacetime } from './spacetime.js';
 import { extractEndpoints, extractScreens } from './surfaces.js';
@@ -8,8 +9,8 @@ import { IdSet, type ScaffoldSource } from './sources.js';
 
 export { collectSources, type ScaffoldSource } from './sources.js';
 
-export type Extractor = 'endpoints' | 'screens' | 'aggregates' | 'domain';
-export const EXTRACTORS: Extractor[] = ['endpoints', 'screens', 'aggregates', 'domain'];
+export type Extractor = 'endpoints' | 'headless' | 'screens' | 'aggregates' | 'domain';
+export const EXTRACTORS: Extractor[] = ['endpoints', 'headless', 'screens', 'aggregates', 'domain'];
 
 export interface ScaffoldOptions {
   context?: string;
@@ -27,10 +28,10 @@ export interface ScaffoldReport {
  * Builds a partial model from source.
  *
  * Everything here is mechanically knowable — a route registration, a route
- * file, a table declaration. Commands, events, policies and invariants are
- * deliberately absent: they are the modelling, and a graph that guessed at them
- * would look complete while being wrong. What this removes is the transcription,
- * which was the expensive half.
+ * file, a subcommand or tool registration, a table declaration. Commands,
+ * events, policies and invariants are deliberately absent: they are the
+ * modelling, and a graph that guessed at them would look complete while being
+ * wrong. What this removes is the transcription, which was the expensive half.
  */
 export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {}): ScaffoldReport {
   const context = options.context ?? 'core';
@@ -38,7 +39,7 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
   const ids = new IdSet();
 
   const notes: string[] = [];
-  const counts: Record<Extractor, number> = { endpoints: 0, screens: 0, aggregates: 0, domain: 0 };
+  const counts: Record<Extractor, number> = { endpoints: 0, headless: 0, screens: 0, aggregates: 0, domain: 0 };
   const model: ContextModel = { context, nodes: [], edges: [] };
 
   /** Routed source file to the screen id it implements, for later extractors. */
@@ -82,6 +83,16 @@ export function scaffold(sources: ScaffoldSource[], options: ScaffoldOptions = {
     model.nodes.push(...endpoints.nodes);
     notes.push(...endpoints.notes);
     counts.endpoints = endpoints.nodes.length;
+  }
+
+  // CLI subcommands and agent tools: the surfaces an agent drives instead of
+  // the UI. Their ids are suffixed, like endpoints, so they never take a name
+  // a screen or a later domain node wants.
+  if (only.includes('headless')) {
+    const headless = extractHeadless(sources, ids);
+    model.nodes.push(...headless.nodes);
+    notes.push(...headless.notes);
+    counts.headless = headless.nodes.length;
   }
 
   if (only.includes('aggregates')) {

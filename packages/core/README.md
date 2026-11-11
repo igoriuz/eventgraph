@@ -13,7 +13,8 @@ What lives here:
 - `EventGraph` — the in-memory graph, plus `QueryEngine` and `analyzeImpact`
 - `validateGraph` — shape: are node and edge types legal for the preset?
 - `checkGraph` — completeness, in six lanes (bootstrap, structure, ux, backend, headless, platform)
-- `scaffold` — extracts a partial model from real source: React Router, SpacetimeDB, Dart
+- `scaffold` — extracts a partial model from real source: React Router, SpacetimeDB, Dart,
+  commander subcommands, MCP tools
 - `verifyImplementations` / `verifyRejectionHandling` — do source pointers still
   resolve, and do callers in one codebase know the rejections declared in another?
 - the model file reader and writer, in the compact on-disk form

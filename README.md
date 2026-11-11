@@ -363,7 +363,9 @@ eventgraph scaffold --root ../ --context app | eventgraph apply -
 ```
 
 It reads HTTP route registrations into endpoints, screens and the navigation
-between them, and ORM table declarations into candidate aggregates. Screens are
+between them, and ORM table declarations into candidate aggregates; in TS and JS,
+commander subcommands and MCP tool registrations become `cli` and `tool`
+surfaces. Screens are
 found however the framework declares them: in the file tree, in a `GoRoute`
 table, or in a `<Route>` element — and a router names screens without
 implementing any, so `implemented_by` points at the component's own file. A
@@ -374,6 +376,12 @@ Commands, events, policies and invariants are deliberately *not* guessed. Those
 are the modelling, and a graph that invented them would look finished while
 being wrong — which is worse than one that is obviously partial. What comes out
 is a skeleton with `check` pointing at everything still missing.
+
+That includes a subcommand or a tool. `orders place` reads like a command and
+`orders list` reads like one too, but only the first changes anything, so both
+come out as surfaces and which domain command each offers is left to you. A
+`.command()` or `.tool()` call counts only in a file importing commander or the
+MCP SDK, since plenty of other libraries have a method by that name.
 
 ### When the module already says it
 
