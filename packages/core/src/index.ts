@@ -29,9 +29,11 @@ export {
 export {
   scaffold,
   collectSources,
+  unreadLanguages,
   EXTRACTORS,
   type Extractor,
   type ScaffoldSource,
+  type UnreadLanguage,
   type ScaffoldOptions,
   type ScaffoldReport,
 } from './scaffold/index.js';
