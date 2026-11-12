@@ -36,6 +36,13 @@ describe('unreadLanguages', () => {
     expect(unreadLanguages(root)).toEqual([]);
   });
 
+  it('does not take an extensionless or oddly named file for a language', () => {
+    // `go` and `m` are extensions only after a dot, and `constructor` is a key
+    // every plain object answers to.
+    const root = tree(['bin/go', 'm', 'Makefile', 'notes.constructor', 'constructor']);
+    expect(unreadLanguages(root)).toEqual([]);
+  });
+
   it('skips the directories the collector skips', () => {
     const root = tree(['ios/Runner/AppDelegate.swift', 'node_modules/x/setup.py', '.build/Gen.swift']);
     expect(unreadLanguages(root)).toEqual([]);

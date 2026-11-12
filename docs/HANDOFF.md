@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 ## Open points
 
@@ -51,6 +51,10 @@ merge. Igor agreed to this scope on 2026-11-11.
 8. README corrections that follow from 3 and 4 (nesting loses a node; the
    import requirement is looser than stated).
 
+9. Merging `main` into the branch conflicts in
+   `packages/cli/src/commands/scaffold.ts` (the "recognised nothing" block
+   gained an unread-languages line on main). Keep both.
+
 Then: `pnpm build && npx vitest run && pnpm lint`, re-run `check --json` on
 site/demo, pkmn-soullink-tracker, jetphrase, teeveebuddy and taimetrack against
 main's dist (must stay byte-identical), merge `--no-ff` into `main`, push, remove
@@ -69,6 +73,22 @@ Separate branch afterwards — **MCP parity**:
 - Whether to try the parity lane on a real app built (or to be built) around a
   headless core — the fastest way to see whether the rules hold up.
 
+- **Trial project is Swift, model-first.** Scaffold has no Swift extractor and
+  none is needed for a new project; it now names the languages it walks past
+  (`unreadLanguages`, `unread` in `--json`). Proposed and not yet confirmed:
+  extend `verify` so a `cli` surface that `offers` a command must mention the
+  command's name in its own `src` (substring, like `rejects`) — the only
+  language-neutral guard against the model claiming a subcommand that does not
+  exist. Also to settle before the first line of code: project conventions
+  (core first, CLI subcommand per command, `--json`, rejection codes, done =
+  `check` + `verify` + a CLI test) and how state survives between CLI calls
+  (persistent store or a script mode).
+- **Unread languages inside `ios/` and `android/`.** Both directories are
+  skipped entirely (they are generated wrappers in Flutter/RN projects), so a
+  native Swift app in `ios/` beside a TypeScript backend is still dropped
+  without a note. Counting them would fix that and print "1 Swift, 1 Kotlin"
+  on every Flutter/RN scaffold.
+
 ### Later on purpose
 
 - `command-no-feedback` counts as satisfied when only an agent tool reads the
@@ -82,6 +102,10 @@ Separate branch afterwards — **MCP parity**:
   baseline); reverse drift (scaffold vs. model as a check); `check --context`
   and cross-context rules; more scaffold sources (Kotlin/Ktor, Swift, Godot)
   per concrete project only.
+- Maintenance, from the unread-languages change: the list of languages
+  scaffold reads exists as `SOURCE_EXT` in core, as the `READ` string in the
+  CLI and in the README (export one list from core); `scaffold/sources.ts`
+  holds file collection, `blockAt`, id helpers and inflection in one file.
 - Maintenance, not bugs: the lane list is written out in six places (export one
   `LANES` const from core); surface-kind properties are spread over five lists
   plus a hardcoded `'cli' || 'tool'` (one table per kind); comment/string

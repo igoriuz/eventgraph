@@ -116,8 +116,12 @@ export interface UnreadLanguage {
 export function unreadLanguages(root: string): UnreadLanguage[] {
   const files = new Map<string, number>();
   for (const { name } of walk(root)) {
-    const language = UNREAD_EXT[name.slice(name.lastIndexOf('.') + 1).toLowerCase()];
-    if (language) files.set(language, (files.get(language) ?? 0) + 1);
+    const dot = name.lastIndexOf('.');
+    if (dot === -1) continue;
+    const ext = name.slice(dot + 1).toLowerCase();
+    if (!Object.hasOwn(UNREAD_EXT, ext)) continue;
+    const language = UNREAD_EXT[ext]!;
+    files.set(language, (files.get(language) ?? 0) + 1);
   }
   return [...files]
     .map(([language, count]) => ({ language, files: count }))
