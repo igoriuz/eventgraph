@@ -43,9 +43,18 @@ describe('unreadLanguages', () => {
     expect(unreadLanguages(root)).toEqual([]);
   });
 
-  it('skips the directories the collector skips', () => {
-    const root = tree(['ios/Runner/AppDelegate.swift', 'node_modules/x/setup.py', '.build/Gen.swift']);
+  it('skips build output and hidden directories', () => {
+    const root = tree(['node_modules/x/setup.py', '.build/Gen.swift', 'dist/a.go']);
     expect(unreadLanguages(root)).toEqual([]);
+  });
+
+  it('counts a native app in ios/ or android/, which the collector never enters', () => {
+    const root = tree(['ios/App/Main.swift', 'android/app/Main.kt', 'ios/gen/route.ts', 'backend/api.ts']);
+    expect(unreadLanguages(root)).toEqual([
+      { language: 'Kotlin', files: 1 },
+      { language: 'Swift', files: 1 },
+    ]);
+    expect(collectSources(root).map(s => s.path)).toEqual(['backend/api.ts']);
   });
 });
 

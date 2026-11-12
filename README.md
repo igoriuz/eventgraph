@@ -367,8 +367,10 @@ Scaffold reads TypeScript, JavaScript, Dart and Prisma schemas. Source in any
 other language it recognises by extension — Swift, Kotlin, Python, Go and the
 like — is counted and named in the notes (and as `unread` in `--json`) instead
 of being passed over, so a model missing half the product is not mistaken for a
-product with half the surfaces. A tree holding nothing readable is an error
-that says which languages it found.
+product with half the surfaces. That includes `ios/` and `android/`, which are
+never read because they are generated wrappers in a Flutter or React Native
+project, and for that reason print a file or two there. A tree holding nothing
+readable is an error that says which languages it found.
 
 The document goes to stdout and the notes to stderr, so it is worth reading the
 middle before piping it: the entry screen, the aggregate names and whether each

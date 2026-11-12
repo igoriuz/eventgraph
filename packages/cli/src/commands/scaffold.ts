@@ -43,7 +43,7 @@ export function registerScaffoldCommand(program: Command): void {
       if (sources.length === 0) {
         console.error(`Error: no source files scaffold can read under ${root}`);
         if (unread.length > 0) console.error(unreadNote(unread));
-        console.error(`Read: ${READ}. Directories named ios and android are skipped.`);
+        console.error(`Read: ${READ}, outside directories named ios and android.`);
         process.exit(1);
       }
 

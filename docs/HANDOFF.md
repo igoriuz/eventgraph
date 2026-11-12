@@ -83,11 +83,6 @@ Separate branch afterwards — **MCP parity**:
   (core first, CLI subcommand per command, `--json`, rejection codes, done =
   `check` + `verify` + a CLI test) and how state survives between CLI calls
   (persistent store or a script mode).
-- **Unread languages inside `ios/` and `android/`.** Both directories are
-  skipped entirely (they are generated wrappers in Flutter/RN projects), so a
-  native Swift app in `ios/` beside a TypeScript backend is still dropped
-  without a note. Counting them would fix that and print "1 Swift, 1 Kotlin"
-  on every Flutter/RN scaffold.
 
 ### Later on purpose
 
