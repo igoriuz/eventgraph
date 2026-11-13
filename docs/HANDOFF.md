@@ -84,6 +84,26 @@ Separate branch afterwards — **MCP parity**:
   `check` + `verify` + a CLI test) and how state survives between CLI calls
   (persistent store or a script mode).
 
+- **Feedback from the Formox trial** (2026-11-14, build `daed754`; model in
+  `~/Private/formox`, branch `eventgraph`, 105 nodes, 249 edges, hand-written).
+  `check` gave 6 errors and 2 warnings, all real gaps, none noisy. Two
+  proposals to accept or drop:
+  - *Rule gap, reproduced here:* a command an actor `issues` that no screen
+    `offers`, no policy `invokes` and that has no `triggered_by` passes
+    `check` clean — the actor has no button for it. `command-no-actor`
+    (`packages/core/src/rules/structure.ts:156`) is satisfied by the `issues`
+    edge, `command-buried` only measures offered commands, and
+    `command-no-feedback` passes when the event reaches a screen. Formox had
+    two (`resume-session`, `re-enable-exercise`). Proposed ux rule
+    `command-unoffered`: issued by a non-headless actor, offered by no
+    reachable surface, not invoked, no `triggered_by`. To settle: whether any
+    surface kind counts or only reachable screens, and how it meets the `cli`/
+    `tool` surfaces of `headless-surfaces`. Expect new findings on the
+    existing models.
+  - *Boilerplate:* with a single actor, `issues` (22 edges) and `sees` (19)
+    carry no information. Proposal: infer them when exactly one non-headless
+    actor exists.
+
 ### Later on purpose
 
 - `command-no-feedback` counts as satisfied when only an agent tool reads the
