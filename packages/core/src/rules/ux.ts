@@ -244,13 +244,14 @@ defineRule(
     id: 'command-buried',
     severity: 'warn',
     lane: 'ux',
-    about: `A command only reachable after more than ${BURIED_DEPTH} navigations is effectively hidden.`,
+    about: `A command only reachable after more than ${BURIED_DEPTH} navigations is effectively hidden. Set data.buried to a reason where the depth is the design, as behind an onboarding funnel.`,
   },
   (g, self) => {
     const depths = reachable(g);
     if (depths.size === 0) return [];
     return g
       .getNodesByType('command')
+      .filter(command => !hasFlag(command, 'buried'))
       .map(command => {
         const hops = sources(g, command, 'offers', 'screen')
           .map(s => depths.get(idOf(s)))
@@ -258,7 +259,7 @@ defineRule(
         return { command, depth: hops.length ? Math.min(...hops) : undefined };
       })
       .filter(x => x.depth !== undefined && x.depth > BURIED_DEPTH)
-      .map(x => finding(self, x.command, `only reachable ${x.depth} navigations deep`, 'Surface it earlier, or accept the depth.'));
+      .map(x => finding(self, x.command, `only reachable ${x.depth} navigations deep`, 'Surface it earlier, or set data.buried to a reason if the depth is intended.'));
   }
 );
 

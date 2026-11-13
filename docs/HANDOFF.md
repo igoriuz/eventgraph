@@ -84,15 +84,13 @@ Separate branch afterwards — **MCP parity**:
   `check` + `verify` + a CLI test) and how state survives between CLI calls
   (persistent store or a script mode).
 
-- **`command-buried` has no way to say "deliberately".** Enabled in the
-  preset on 2026-11-14 (it was registered and documented since the first
-  rules commit but never listed, so it never ran). It adds 13 warnings on
-  jetphrase and none elsewhere. Most come from the model: the only `entry`
-  screen is `trips.onboarding-welcome`, so every depth is measured through
-  the onboarding funnel; marking `learning.dashboard` as `entry` too should
-  clear those. What remains (`register-account`, `sign-in` behind five
-  onboarding screens) is intended, and the rule has no reason flag to accept
-  it. Decide: add one, or live with the warnings.
+- **jetphrase: 13 `command-buried` warnings** since the rule was enabled in
+  the preset on 2026-11-14. Most come from the model: the only `entry` screen
+  is `trips.onboarding-welcome`, so every depth is measured through the
+  onboarding funnel; marking `learning.dashboard` as `entry` too should clear
+  those (untried). What is then left (`register-account`, `sign-in` behind
+  five onboarding screens) is intended — accept it with `buried: <reason>` on
+  the command.
 - **Open findings from `command-unoffered` in other projects** (rule merged
   2026-11-14; counts offers on reachable screens and on endpoints, not on
   notifications or widgets): pkmn-soullink-tracker 4 (`log-failed-encounter`,
