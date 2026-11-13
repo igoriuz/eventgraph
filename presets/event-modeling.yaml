@@ -79,6 +79,7 @@ rules:
   - screen-unreachable
   - screen-dead-end
   - no-entry-screen
+  - command-unoffered
   - actor-cannot-issue
   # Backend — silent unless the model declares a backend surface
   - endpoint-anonymous

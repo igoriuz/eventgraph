@@ -84,25 +84,25 @@ Separate branch afterwards — **MCP parity**:
   `check` + `verify` + a CLI test) and how state survives between CLI calls
   (persistent store or a script mode).
 
-- **Feedback from the Formox trial** (2026-11-14, build `daed754`; model in
-  `~/Private/formox`, branch `eventgraph`, 105 nodes, 249 edges, hand-written).
-  `check` gave 6 errors and 2 warnings, all real gaps, none noisy. Two
-  proposals to accept or drop:
-  - *Rule gap, reproduced here:* a command an actor `issues` that no screen
-    `offers`, no policy `invokes` and that has no `triggered_by` passes
-    `check` clean — the actor has no button for it. `command-no-actor`
-    (`packages/core/src/rules/structure.ts:156`) is satisfied by the `issues`
-    edge, `command-buried` only measures offered commands, and
-    `command-no-feedback` passes when the event reaches a screen. Formox had
-    two (`resume-session`, `re-enable-exercise`). Proposed ux rule
-    `command-unoffered`: issued by a non-headless actor, offered by no
-    reachable surface, not invoked, no `triggered_by`. To settle: whether any
-    surface kind counts or only reachable screens, and how it meets the `cli`/
-    `tool` surfaces of `headless-surfaces`. Expect new findings on the
-    existing models.
-  - *Boilerplate:* with a single actor, `issues` (22 edges) and `sees` (19)
-    carry no information. Proposal: infer them when exactly one non-headless
-    actor exists.
+- **`command-unoffered` and surfaces that are not screens.** The rule (merged
+  2026-11-14, from the Formox trial) counts only offers on screens reachable
+  from an entry screen, as decided. On the existing models it adds 8 findings:
+  pkmn-soullink-tracker 4 (no offer at all — real), teeveebuddy 1
+  (`import-playlist`, offered only on the unreachable `import` screen, so one
+  cause is now reported twice), jetphrase 3. The jetphrase ones are the open
+  question: `trips.complete-trip` and `trips.reschedule-trip` are issued by
+  the traveller and offered only by `trip-detail-endpoint`; they are flagged
+  because another context has an entry screen, and would not be if `trips`
+  were modelled alone. `billing.record-subscription-change` is issued by
+  `revenuecat`, which is not marked `headless`. Decide: keep strict and fix
+  the models (`headless`, `triggered_by`, or model the screens), or let an
+  `endpoint` offer count.
+- **`command-buried` never runs.** The rule is registered and in the README
+  but missing from `presets/event-modeling.yaml`. Enable it or drop it.
+- **Infer `issues`/`sees` for a single actor?** Formox trial (107 nodes, model
+  in `~/Private/formox`, now free of findings): with one actor, `issues` (22
+  edges) and `sees` (19) carry no information. Proposal: infer them when
+  exactly one non-headless actor exists.
 
 ### Later on purpose
 
