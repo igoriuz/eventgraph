@@ -426,6 +426,73 @@ describe('ux', () => {
     graph.addEdge(edge('main', 'offers', 'purge'));
     expect(rulesHit(graph)).toContain('actor-cannot-issue');
   });
+
+  describe('command-unoffered', () => {
+    /** completeGraph plus a second command the user issues; its outcome is visible on main. */
+    const withResume = (data?: Record<string, unknown>) => {
+      const graph = completeGraph();
+      graph.addNode({ context: 'app', id: 'resume', type: 'command', label: 'Resume', data });
+      graph.addNode({ context: 'app', id: 'resumed', type: 'event', label: 'Resumed' });
+      graph.addEdge(edge('user', 'issues', 'resume'));
+      graph.addEdge(edge('resume', 'produces', 'resumed'));
+      graph.addEdge(edge('resume', 'acts-on', 'thing'));
+      graph.addEdge(edge('resumed', 'belongs-to', 'thing'));
+      graph.addEdge(edge('resumed', 'projects-to', 'status'));
+      return graph;
+    };
+    const unoffered = (graph: EventGraph) =>
+      checkGraph(graph, ALL)
+        .filter(f => f.rule === 'command-unoffered')
+        .map(f => f.node);
+
+    it('flags a command a person issues that no screen offers', () => {
+      expect(unoffered(withResume())).toEqual(['app.resume']);
+    });
+
+    it('is satisfied by an offer on a reachable screen', () => {
+      const graph = withResume();
+      graph.addEdge(edge('main', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('does not count an offer on a screen no navigation reaches', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'island', type: 'screen', label: 'Island' });
+      graph.addEdge(edge('island', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual(['app.resume']);
+    });
+
+    it('does not count an offer on a surface that is not a screen', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'banner', type: 'screen', label: 'Banner', data: { kind: 'notification' } });
+      graph.addEdge(edge('banner', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual(['app.resume']);
+    });
+
+    it('accepts a command with a named trigger', () => {
+      expect(unoffered(withResume({ triggered_by: 'app returns to the foreground' }))).toEqual([]);
+    });
+
+    it('accepts a command a policy invokes', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'auto-resume', type: 'policy', label: 'Auto resume' });
+      graph.addEdge(edge('acted', 'triggers', 'auto-resume'));
+      graph.addEdge(edge('auto-resume', 'invokes', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('ignores a command only headless actors issue', () => {
+      const graph = withResume();
+      graph.getNode('app.user')!.data = { headless: true };
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('stays silent without an entry screen to measure from', () => {
+      const graph = withResume();
+      graph.getNode('app.main')!.data = {};
+      expect(unoffered(graph)).toEqual([]);
+    });
+  });
 });
 
 describe('output shape', () => {
