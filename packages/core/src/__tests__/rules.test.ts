@@ -462,11 +462,18 @@ describe('ux', () => {
       expect(unoffered(graph)).toEqual(['app.resume']);
     });
 
-    it('does not count an offer on a surface that is not a screen', () => {
+    it('does not count an offer on a notification', () => {
       const graph = withResume();
       graph.addNode({ context: 'app', id: 'banner', type: 'screen', label: 'Banner', data: { kind: 'notification' } });
       graph.addEdge(edge('banner', 'offers', 'resume'));
       expect(unoffered(graph)).toEqual(['app.resume']);
+    });
+
+    it('counts an offer on an endpoint, which nobody navigates to', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'api', type: 'screen', label: 'API', data: { kind: 'endpoint' } });
+      graph.addEdge(edge('api', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
     });
 
     it('accepts a command with a named trigger', () => {

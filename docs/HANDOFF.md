@@ -84,28 +84,28 @@ Separate branch afterwards — **MCP parity**:
   `check` + `verify` + a CLI test) and how state survives between CLI calls
   (persistent store or a script mode).
 
-- **`command-unoffered` and surfaces that are not screens.** The rule (merged
-  2026-11-14, from the Formox trial) counts only offers on screens reachable
-  from an entry screen, as decided. On the existing models it adds 8 findings:
-  pkmn-soullink-tracker 4 (no offer at all — real), teeveebuddy 1
-  (`import-playlist`, offered only on the unreachable `import` screen, so one
-  cause is now reported twice), jetphrase 3. The jetphrase ones are the open
-  question: `trips.complete-trip` and `trips.reschedule-trip` are issued by
-  the traveller and offered only by `trip-detail-endpoint`; they are flagged
-  because another context has an entry screen, and would not be if `trips`
-  were modelled alone. `billing.record-subscription-change` is issued by
-  `revenuecat`, which is not marked `headless`. Decide: keep strict and fix
-  the models (`headless`, `triggered_by`, or model the screens), or let an
-  `endpoint` offer count.
-- **`command-buried` never runs.** The rule is registered and in the README
-  but missing from `presets/event-modeling.yaml`. Enable it or drop it.
-- **Infer `issues`/`sees` for a single actor?** Formox trial (107 nodes, model
-  in `~/Private/formox`, now free of findings): with one actor, `issues` (22
-  edges) and `sees` (19) carry no information. Proposal: infer them when
-  exactly one non-headless actor exists.
+- **`command-buried` has no way to say "deliberately".** Enabled in the
+  preset on 2026-11-14 (it was registered and documented since the first
+  rules commit but never listed, so it never ran). It adds 13 warnings on
+  jetphrase and none elsewhere. Most come from the model: the only `entry`
+  screen is `trips.onboarding-welcome`, so every depth is measured through
+  the onboarding funnel; marking `learning.dashboard` as `entry` too should
+  clear those. What remains (`register-account`, `sign-in` behind five
+  onboarding screens) is intended, and the rule has no reason flag to accept
+  it. Decide: add one, or live with the warnings.
+- **Open findings from `command-unoffered` in other projects** (rule merged
+  2026-11-14; counts offers on reachable screens and on endpoints, not on
+  notifications or widgets): pkmn-soullink-tracker 4 (`log-failed-encounter`,
+  `delete-encounter`, `mark-failed`, `update-nickname` — issued by the
+  trainer, offered nowhere), teeveebuddy 1 (`import-playlist`, offered only on
+  the unreachable `import` screen, so it clears with the existing
+  `screen-unreachable` finding).
 
 ### Later on purpose
 
+- Inferring `issues`/`sees` when exactly one non-headless actor exists
+  (Formox trial: 22 + 19 edges of boilerplate). Not built: it saves typing
+  only, and implicit edges make the model say less than it reads.
 - `command-no-feedback` counts as satisfied when only an agent tool reads the
   outcome, even if a human issued the command. Left as is until a real model
   gets it wrong.
