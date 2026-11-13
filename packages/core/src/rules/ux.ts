@@ -268,7 +268,7 @@ defineRule(
     severity: 'error',
     lane: 'ux',
     about:
-      'A person is said to issue this command, yet no screen they can reach offers it — there is no button. Every other rule passes: the command has an actor, and its outcome may even be displayed. Only offers on screens reachable from an entry screen count; a policy, or a named trigger in data.triggered_by, explains a command nobody presses.',
+      'A person is said to issue this command, yet no screen they can reach offers it — there is no button. Every other rule passes: the command has an actor, and its outcome may even be displayed. Only offers on screens reachable from an entry screen count, and on endpoints, which a client calls rather than navigates to; a policy, or a named trigger in data.triggered_by, explains a command nobody presses.',
   },
   (g, self) => {
     const depths = reachable(g);
@@ -280,16 +280,16 @@ defineRule(
           sources(g, c, 'issues', 'actor').some(a => !isHeadless(a)) &&
           !hasFlag(c, 'triggered_by') &&
           sources(g, c, 'invokes', 'policy').length === 0 &&
-          !sources(g, c, 'offers', 'screen').some(s => isNavigable(s) && depths.has(idOf(s)))
+          !sources(g, c, 'offers', 'screen').some(s => kindOf(s) === 'endpoint' || (isNavigable(s) && depths.has(idOf(s))))
       )
       .map(c =>
         finding(
           self,
           c,
           sources(g, c, 'offers', 'screen').length === 0
-            ? 'an actor issues this, but no screen offers it'
-            : 'an actor issues this, but no screen reachable from an entry screen offers it',
-          'Add an offers edge from a reachable screen, set data.triggered_by if nobody presses anything, or mark the actor headless if it is not a person.'
+            ? 'an actor issues this, but no screen or endpoint offers it'
+            : 'an actor issues this, but no endpoint or screen reachable from an entry screen offers it',
+          'Add an offers edge from a reachable screen or an endpoint, set data.triggered_by if nobody presses anything, or mark the actor headless if it is not a person.'
         )
       );
   }

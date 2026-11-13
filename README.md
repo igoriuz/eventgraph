@@ -149,9 +149,9 @@ not graph problems.
 - a screen no navigation path reaches from an entry screen
 - a screen with no action and no way onward
 - a command buried more than three navigations deep
-- a command an actor issues that no reachable screen offers — no button, though
-  its outcome may well be displayed. Offers on notifications, widgets and
-  endpoints do not count; `triggered_by` names whatever issues it instead
+- a command an actor issues that no reachable screen and no endpoint offers —
+  no button, though its outcome may well be displayed. Offers on notifications
+  and widgets do not count; `triggered_by` names whatever issues it instead
 - a screen offering an actor a command they may not issue
 
 **backend** — silent unless the model describes one; see below.
