@@ -180,6 +180,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `kind` | screen | which surface this is; only `screen` is navigated to |
 | `public: <reason>` | screen | an endpoint deliberately callable without a named caller |
 | `triggered_by` | command | issued by a scheduler or by a screen appearing |
+| `buried: <reason>` | command | more than three navigations deep on purpose, e.g. behind an onboarding funnel |
 | `external: <reason>` | command | hands off to a system surface, so no outcome is observable |
 | `failure` | event | records a refusal rather than a success |
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
