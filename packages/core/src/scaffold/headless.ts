@@ -1,6 +1,8 @@
 import type { ContextModelNode } from '../schema.js';
 import { screen } from './surfaces.js';
-import { blank, IdSet, kebab, type ScaffoldSource } from './sources.js';
+import { IdSet, kebab } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
+import { blank } from './text.js';
 
 /**
  * Finds the headless edge of an app: CLI subcommands and agent tools, the

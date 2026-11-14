@@ -1,5 +1,7 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
-import { blockAt, IdSet, kebab, titleise, type ScaffoldSource } from './sources.js';
+import { IdSet, kebab, titleise } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
+import { blockAt } from './text.js';
 
 /**
  * Reads a React app whose routes live in a table rather than in the file tree.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scaffold } from '../scaffold/index.js';
-import { kebab, singularise } from '../scaffold/sources.js';
+import { kebab, singularise } from '../scaffold/naming.js';
 import type { ScaffoldSource } from '../scaffold/sources.js';
 
 function src(path: string, content: string): ScaffoldSource {

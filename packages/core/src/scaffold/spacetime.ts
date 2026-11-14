@@ -1,14 +1,8 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
 import { screenReach } from './react-router.js';
-import {
-  blockAt,
-  IdSet,
-  kebab,
-  pluralise,
-  singularise,
-  titleise,
-  type ScaffoldSource,
-} from './sources.js';
+import { IdSet, kebab, pluralise, singularise, titleise } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
+import { blockAt } from './text.js';
 
 /**
  * Reads a SpacetimeDB module, where the domain is already written down.
