@@ -2,10 +2,12 @@ import { Command } from 'commander';
 import { resolve } from 'node:path';
 import {
   collectSources,
+  unreadLanguages,
   scaffold,
   stringifyContextModel,
   EXTRACTORS,
   type Extractor,
+  type UnreadLanguage,
 } from 'eventgraph-core';
 
 /**
@@ -37,20 +39,24 @@ export function registerScaffoldCommand(program: Command): void {
 
       const root = resolve(opts.root);
       const sources = collectSources(root);
+      const unread = unreadLanguages(root);
       if (sources.length === 0) {
-        console.error(`Error: no source files under ${root}`);
+        console.error(`Error: no source files scaffold can read under ${root}`);
+        if (unread.length > 0) console.error(unreadNote(unread));
+        console.error(`Read: ${READ}, outside directories named ios and android.`);
         process.exit(1);
       }
 
       const report = scaffold(sources, { context: opts.context, only });
 
       if (opts.json) {
-        console.log(JSON.stringify({ ...report, scanned: sources.length }, null, 2));
+        console.log(JSON.stringify({ ...report, scanned: sources.length, unread }, null, 2));
         return;
       }
 
       if (report.model.nodes.length === 0) {
         console.error(`Scanned ${sources.length} file(s) under ${root} and recognised nothing.`);
+        if (unread.length > 0) console.error(unreadNote(unread));
         console.error(
           'Supported: HTTP route registrations, commander subcommands, MCP tools,\n' +
             'file-routed and router-table screens, ORM table declarations, and modules\n' +
@@ -62,11 +68,23 @@ export function registerScaffoldCommand(program: Command): void {
       // Notes go to stderr so the document on stdout stays pipeable into apply.
       console.error(`Scanned ${sources.length} file(s) under ${root}`);
       for (const note of report.notes) console.error(`  · ${note}`);
+      if (unread.length > 0) console.error(`\n${unreadNote(unread)}`);
       console.error(`\n${caveat(report.counts.domain > 0, report.counts.headless > 0)}\nReview, then: eventgraph apply -\n`);
 
       console.log(header(report.model.context, report.counts.domain > 0));
       console.log(stringifyContextModel(report.model));
     });
+}
+
+const READ = 'TypeScript, JavaScript, Dart and Prisma schemas';
+
+/**
+ * Says which languages were walked past, so a model missing half the product
+ * is not read as a product with half the surfaces.
+ */
+function unreadNote(unread: UnreadLanguage[]): string {
+  const list = unread.map(u => `${u.files} ${u.language}`).join(', ');
+  return `Not read, no extractor for the language: ${list} file(s). Nothing in the model comes from them.`;
 }
 
 /**

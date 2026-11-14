@@ -1,6 +1,6 @@
 {
   "name": "eventgraph-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Model an application as a queryable graph instead of a diagram nobody maintains, and get told which gaps are structurally impossible to leave open.",
   "keywords": [
     "event-modeling",

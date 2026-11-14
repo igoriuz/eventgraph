@@ -6,6 +6,7 @@ import {
   flag,
   hasFlag,
   idOf,
+  isHeadless,
   isNavigable,
   issuedOnlyHeadlessly,
   kindOf,
@@ -244,13 +245,14 @@ defineRule(
     id: 'command-buried',
     severity: 'warn',
     lane: 'ux',
-    about: `A command only reachable after more than ${BURIED_DEPTH} navigations is effectively hidden.`,
+    about: `A command only reachable after more than ${BURIED_DEPTH} navigations is effectively hidden. Set data.buried to a reason where the depth is the design, as behind an onboarding funnel.`,
   },
   (g, self) => {
     const depths = reachable(g);
     if (depths.size === 0) return [];
     return g
       .getNodesByType('command')
+      .filter(command => !hasFlag(command, 'buried'))
       .map(command => {
         const hops = sources(g, command, 'offers', 'screen')
           .map(s => depths.get(idOf(s)))
@@ -258,7 +260,40 @@ defineRule(
         return { command, depth: hops.length ? Math.min(...hops) : undefined };
       })
       .filter(x => x.depth !== undefined && x.depth > BURIED_DEPTH)
-      .map(x => finding(self, x.command, `only reachable ${x.depth} navigations deep`, 'Surface it earlier, or accept the depth.'));
+      .map(x => finding(self, x.command, `only reachable ${x.depth} navigations deep`, 'Surface it earlier, or set data.buried to a reason if the depth is intended.'));
+  }
+);
+
+defineRule(
+  {
+    id: 'command-unoffered',
+    severity: 'error',
+    lane: 'ux',
+    about:
+      'A person is said to issue this command, yet no screen they can reach offers it — there is no button. Every other rule passes: the command has an actor, and its outcome may even be displayed. Only offers on screens reachable from an entry screen count, and on endpoints, which a client calls rather than navigates to; a policy, or a named trigger in data.triggered_by, explains a command nobody presses.',
+  },
+  (g, self) => {
+    const depths = reachable(g);
+    if (depths.size === 0) return [];
+    return g
+      .getNodesByType('command')
+      .filter(
+        c =>
+          sources(g, c, 'issues', 'actor').some(a => !isHeadless(a)) &&
+          !hasFlag(c, 'triggered_by') &&
+          sources(g, c, 'invokes', 'policy').length === 0 &&
+          !sources(g, c, 'offers', 'screen').some(s => kindOf(s) === 'endpoint' || (isNavigable(s) && depths.has(idOf(s))))
+      )
+      .map(c =>
+        finding(
+          self,
+          c,
+          sources(g, c, 'offers', 'screen').length === 0
+            ? 'an actor issues this, but no screen or endpoint offers it'
+            : 'an actor issues this, but no endpoint or screen reachable from an entry screen offers it',
+          'Add an offers edge from a reachable screen or an endpoint, set data.triggered_by if nobody presses anything, or mark the actor headless if it is not a person.'
+        )
+      );
   }
 );
 

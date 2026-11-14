@@ -149,6 +149,9 @@ not graph problems.
 - a screen no navigation path reaches from an entry screen
 - a screen with no action and no way onward
 - a command buried more than three navigations deep
+- a command an actor issues that no reachable screen and no endpoint offers —
+  no button, though its outcome may well be displayed. Offers on notifications
+  and widgets do not count; `triggered_by` names whatever issues it instead
 - a screen offering an actor a command they may not issue
 
 **backend** — silent unless the model describes one; see below.
@@ -184,6 +187,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `ui_only: <reason>` | command, read-model | belongs to the UI on purpose, so no CLI, tool or endpoint needs to reach it |
 | `public: <reason>` | screen | an endpoint deliberately callable without a named caller |
 | `triggered_by` | command | issued by a scheduler or by a screen appearing |
+| `buried: <reason>` | command | more than three navigations deep on purpose, e.g. behind an onboarding funnel |
 | `external: <reason>` | command | hands off to a system surface, so no outcome is observable |
 | `failure` | event | records a refusal rather than a success |
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
@@ -403,6 +407,15 @@ sits in.
 Even here the graph stays partial. Actors, policies, invariants, and which
 aggregate an event belongs to are still the modelling — an event row carrying
 three foreign keys does not say which one owns it.
+
+Scaffold reads TypeScript, JavaScript, Dart and Prisma schemas. Source in any
+other language it recognises by extension — Swift, Kotlin, Python, Go and the
+like — is counted and named in the notes (and as `unread` in `--json`) instead
+of being passed over, so a model missing half the product is not mistaken for a
+product with half the surfaces. That includes `ios/` and `android/`, which are
+never read because they are generated wrappers in a Flutter or React Native
+project, and for that reason print a file or two there. A tree holding nothing
+readable is an error that says which languages it found.
 
 The document goes to stdout and the notes to stderr, so it is worth reading the
 middle before piping it: the entry screen, the aggregate names and whether each

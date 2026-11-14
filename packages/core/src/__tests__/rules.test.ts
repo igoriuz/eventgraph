@@ -426,6 +426,122 @@ describe('ux', () => {
     graph.addEdge(edge('main', 'offers', 'purge'));
     expect(rulesHit(graph)).toContain('actor-cannot-issue');
   });
+
+  describe('command-buried', () => {
+    /** completeGraph plus a chain of `hops` screens, the last one offering a second command. */
+    const chain = (hops: number, data?: Record<string, unknown>) => {
+      const graph = completeGraph();
+      graph.addNode({ context: 'app', id: 'deep', type: 'command', label: 'Deep', data });
+      graph.addNode({ context: 'app', id: 'deepened', type: 'event', label: 'Deepened' });
+      graph.addEdge(edge('user', 'issues', 'deep'));
+      graph.addEdge(edge('deep', 'produces', 'deepened'));
+      graph.addEdge(edge('deep', 'acts-on', 'thing'));
+      graph.addEdge(edge('deepened', 'belongs-to', 'thing'));
+      graph.addEdge(edge('deepened', 'projects-to', 'status'));
+      let previous = 'main';
+      for (let i = 1; i <= hops; i++) {
+        graph.addNode({ context: 'app', id: `step-${i}`, type: 'screen', label: `Step ${i}` });
+        graph.addEdge(edge('user', 'sees', `step-${i}`));
+        graph.addEdge(edge(previous, 'navigates-to', `step-${i}`));
+        graph.addEdge(edge(`step-${i}`, 'reads', 'status'));
+        previous = `step-${i}`;
+      }
+      graph.addEdge(edge(previous, 'offers', 'deep'));
+      return checkGraph(graph, ALL)
+        .filter(f => f.rule === 'command-buried')
+        .map(f => f.node);
+    };
+
+    it('accepts a command three navigations deep', () => {
+      expect(chain(3)).toEqual([]);
+    });
+
+    it('flags a command four navigations deep', () => {
+      expect(chain(4)).toEqual(['app.deep']);
+    });
+
+    it('data.buried with a reason accepts the depth', () => {
+      expect(chain(4, { buried: 'sits behind the onboarding funnel on purpose' })).toEqual([]);
+    });
+
+    it('an empty reason accepts nothing', () => {
+      expect(chain(4, { buried: '' })).toEqual(['app.deep']);
+    });
+  });
+
+  describe('command-unoffered', () => {
+    /** completeGraph plus a second command the user issues; its outcome is visible on main. */
+    const withResume = (data?: Record<string, unknown>) => {
+      const graph = completeGraph();
+      graph.addNode({ context: 'app', id: 'resume', type: 'command', label: 'Resume', data });
+      graph.addNode({ context: 'app', id: 'resumed', type: 'event', label: 'Resumed' });
+      graph.addEdge(edge('user', 'issues', 'resume'));
+      graph.addEdge(edge('resume', 'produces', 'resumed'));
+      graph.addEdge(edge('resume', 'acts-on', 'thing'));
+      graph.addEdge(edge('resumed', 'belongs-to', 'thing'));
+      graph.addEdge(edge('resumed', 'projects-to', 'status'));
+      return graph;
+    };
+    const unoffered = (graph: EventGraph) =>
+      checkGraph(graph, ALL)
+        .filter(f => f.rule === 'command-unoffered')
+        .map(f => f.node);
+
+    it('flags a command a person issues that no screen offers', () => {
+      expect(unoffered(withResume())).toEqual(['app.resume']);
+    });
+
+    it('is satisfied by an offer on a reachable screen', () => {
+      const graph = withResume();
+      graph.addEdge(edge('main', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('does not count an offer on a screen no navigation reaches', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'island', type: 'screen', label: 'Island' });
+      graph.addEdge(edge('island', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual(['app.resume']);
+    });
+
+    it('does not count an offer on a notification', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'banner', type: 'screen', label: 'Banner', data: { kind: 'notification' } });
+      graph.addEdge(edge('banner', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual(['app.resume']);
+    });
+
+    it('counts an offer on an endpoint, which nobody navigates to', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'api', type: 'screen', label: 'API', data: { kind: 'endpoint' } });
+      graph.addEdge(edge('api', 'offers', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('accepts a command with a named trigger', () => {
+      expect(unoffered(withResume({ triggered_by: 'app returns to the foreground' }))).toEqual([]);
+    });
+
+    it('accepts a command a policy invokes', () => {
+      const graph = withResume();
+      graph.addNode({ context: 'app', id: 'auto-resume', type: 'policy', label: 'Auto resume' });
+      graph.addEdge(edge('acted', 'triggers', 'auto-resume'));
+      graph.addEdge(edge('auto-resume', 'invokes', 'resume'));
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('ignores a command only headless actors issue', () => {
+      const graph = withResume();
+      graph.getNode('app.user')!.data = { headless: true };
+      expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('stays silent without an entry screen to measure from', () => {
+      const graph = withResume();
+      graph.getNode('app.main')!.data = {};
+      expect(unoffered(graph)).toEqual([]);
+    });
+  });
 });
 
 describe('output shape', () => {
