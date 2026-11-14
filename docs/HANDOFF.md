@@ -6,14 +6,12 @@ Last updated: 2026-11-12
 
 ### Claude next
 
-Nothing queued. Released is 0.2.0; `main` is ahead of it by the parity lane
-(surface kinds `cli`/`tool`, lane `parity`, `validate` rejecting unknown
-kinds), MCP parity (`eventgraph_apply`, `eventgraph_verify`,
-`eventgraph_scaffold`) and the fixes from the review of 2026-11-14. A release
+Nothing queued. Released is 0.3.0 (tag `v0.3.0`), which is `main`. A release
 needs the versions raised in the four `package.json` files,
-`packages/cli/src/index.ts` and `packages/mcp/src/server.ts`, then a tag `v*`.
+`packages/cli/src/index.ts` and `packages/mcp/src/server.ts`, then a tag `v*`;
+npm trusted publishing is set up for all four packages.
 
-For the release notes — what changes for someone on 0.2.0:
+What 0.3.0 changed for someone on 0.2.0:
 - MCP writes answer with `status` (`applied`, `planned`, `proposed`,
   `refused`, `invalid`) instead of `success`.
 - `eventgraph_add_node` refuses an id that exists and, like `add_edge`, a
