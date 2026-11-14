@@ -135,6 +135,31 @@ function edgesFromCompact(raw: unknown): GraphEdge[] {
   return edges;
 }
 
+function nodesFromList(raw: unknown): ContextModelNode[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new Error('nodes must be a mapping of id to node, or a list of nodes');
+  return raw.map((node, index) => {
+    const entry = node as Partial<ContextModelNode> | null;
+    if (!entry || typeof entry !== 'object' || typeof entry.id !== 'string' || entry.id.length === 0) {
+      throw new Error(`node ${index + 1} in the list has no id`);
+    }
+    if (typeof entry.type !== 'string' || entry.type.length === 0) throw new Error(`node "${entry.id}" has no type`);
+    return entry as ContextModelNode;
+  });
+}
+
+function edgesFromList(raw: unknown): GraphEdge[] {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) throw new Error('edges must be a mapping of edge type to source, or a list of edges');
+  return raw.map((edge, index) => {
+    const entry = edge as Partial<GraphEdge> | null;
+    if (!entry || [entry.from, entry.to, entry.type].some(part => typeof part !== 'string')) {
+      throw new Error(`edge ${index + 1} in the list needs from, to and type`);
+    }
+    return entry as GraphEdge;
+  });
+}
+
 /**
  * Normalises either on-disk form into the flat model. Both are accepted so a
  * project can be migrated file by file rather than all at once.
@@ -148,11 +173,7 @@ export function parseContextModel(raw: unknown): ContextModel {
   }
 
   if (!isCompactModel(raw)) {
-    return {
-      context,
-      nodes: (model.nodes as ContextModelNode[]) ?? [],
-      edges: (model.edges as GraphEdge[]) ?? [],
-    };
+    return { context, nodes: nodesFromList(model.nodes), edges: edgesFromList(model.edges) };
   }
 
   const nodes = Object.entries((model.nodes as Record<string, unknown>) ?? {}).map(([id, raw]) =>

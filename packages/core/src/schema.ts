@@ -92,6 +92,15 @@ export const GENERIC_EDGE_TYPES = [
   'depends-on',
 ] as const;
 
+/**
+ * Whether a context name or a node id is a plain name. A context name becomes
+ * a directory and a dot separates context from node in a qualified id, so
+ * neither may carry a path separator or a dot.
+ */
+export function isPlainName(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(value);
+}
+
 export function qualifiedId(context: string, nodeId: string): string {
   if (nodeId.includes('.')) return nodeId;
   return `${context}.${nodeId}`;

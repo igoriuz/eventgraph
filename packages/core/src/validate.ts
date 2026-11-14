@@ -6,7 +6,7 @@ import type { EventGraph } from './graph.js';
 import { SURFACE_KINDS } from './rules/kit.js';
 
 export interface ValidationError {
-  type: 'invalid-node-type' | 'invalid-surface-kind' | 'invalid-edge-type' | 'edge-rule-violation' | 'dangling-edge';
+  type: 'invalid-name' | 'invalid-node-type' | 'invalid-surface-kind' | 'invalid-edge-type' | 'edge-rule-violation' | 'dangling-edge';
   message: string;
   nodeId?: string;
   edgeFrom?: string;

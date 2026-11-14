@@ -15,6 +15,7 @@ export {
   GENERIC_EDGE_TYPES,
   qualifiedId,
   parseQualifiedId,
+  isPlainName,
 } from './schema.js';
 
 export { EventGraph } from './graph.js';

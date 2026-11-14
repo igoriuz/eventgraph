@@ -117,7 +117,7 @@ export function createWriteTools(projectDir: string): WriteToolsApi {
       const planOnly = dryRun === true || mode === 'prompt';
       const preset = loadPreset(open().config.preset, presetsDirPath());
       const outcome = applyModels(projectDir, incoming, preset, { replace, dryRun: planOnly });
-      if (outcome.errors.length > 0) {
+      if (outcome.status === 'invalid') {
         return { success: false, errors: outcome.errors.map(e => `[${e.type}] ${e.message}`) };
       }
 
