@@ -5,7 +5,12 @@ import {
   removeNodeFromContext,
   generateYamlDiff,
   analyzeImpact,
+  applyModels,
+  loadPreset,
+  parseContextModels,
+  type ContextChange,
 } from 'eventgraph-core';
+import { presetsDirPath } from './presets.js';
 
 interface WriteResult {
   success: boolean;
@@ -18,7 +23,26 @@ export interface WriteToolsApi {
   eventgraph_add_edge(input: { context: string; from: string; to: string; type: string }): Promise<WriteResult>;
   eventgraph_update_node(input: { nodeId: string; label?: string; data?: Record<string, unknown> }): Promise<WriteResult>;
   eventgraph_remove_node(input: { nodeId: string }): Promise<WriteResult>;
+  eventgraph_apply(input: { model: string; replace?: boolean; dryRun?: boolean }): Promise<ApplyResult>;
 }
+
+interface ApplyResult extends WriteResult {
+  dryRun?: boolean;
+  /** Validation errors in the merged whole; nothing was written. */
+  errors?: string[];
+  changes?: Array<Omit<ContextChange, 'model'>>;
+}
+
+const describeChange = (c: Omit<ContextChange, 'model'>) =>
+  `${c.context}: ` +
+  [
+    `${c.nodesAdded} node(s) added`,
+    c.nodesReplaced > 0 ? `${c.nodesReplaced} replaced` : '',
+    `${c.edgesAdded} edge(s) added`,
+    c.isNew ? 'new context' : '',
+  ]
+    .filter(Boolean)
+    .join(', ');
 
 /**
  * Reads the project per call for the same reason the read tools do: a write
@@ -70,6 +94,38 @@ export function createWriteTools(projectDir: string): WriteToolsApi {
         return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
       return { success: false, error: 'Update not yet implemented in MVP' };
+    },
+
+    /**
+     * The bulk write: a whole context, or several, in one call. Validated as a
+     * merged whole before anything is written, so a bad batch changes nothing.
+     */
+    async eventgraph_apply({ model, replace, dryRun }) {
+      const mode = writeMode();
+      if (mode === 'locked') {
+        return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
+      }
+
+      let incoming;
+      try {
+        incoming = parseContextModels(model);
+      } catch (error) {
+        return { success: false, error: (error as Error).message };
+      }
+
+      // In prompt mode the agent may plan but not write, whatever it asked for.
+      const planOnly = dryRun === true || mode === 'prompt';
+      const preset = loadPreset(open().config.preset, presetsDirPath());
+      const outcome = applyModels(projectDir, incoming, preset, { replace, dryRun: planOnly });
+      if (outcome.errors.length > 0) {
+        return { success: false, errors: outcome.errors.map(e => `[${e.type}] ${e.message}`) };
+      }
+
+      const changes = outcome.changes.map(({ model: _model, ...rest }) => rest);
+      if (mode === 'prompt') {
+        return { success: false, pendingDiff: `Would apply ${changes.length} context(s):\n${changes.map(c => `  ${describeChange(c)}`).join('\n')}`, changes };
+      }
+      return { success: true, dryRun: planOnly, changes };
     },
 
     async eventgraph_remove_node({ nodeId }) {
