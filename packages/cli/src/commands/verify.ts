@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { resolve } from 'node:path';
-import { verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
+import { sourceRootOf, verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 /**
@@ -13,11 +13,11 @@ export function registerVerifyCommand(program: Command): void {
   program
     .command('verify')
     .description('Check the model against the code: pointers resolve, callers know the rejections')
-    .option('-r, --root <path>', 'Where source pointers resolve from (default: the project parent)')
+    .option('-r, --root <path>', 'Where source pointers resolve from (default: the directory holding eventgraph/)')
     .option('--json', 'machine-readable output')
     .action((opts: { root?: string; json?: boolean }) => {
       const { projectDir, graph } = loadOrFail();
-      const sourceRoot = resolve(opts.root ?? resolve(projectDir, '..'));
+      const sourceRoot = opts.root ? resolve(opts.root) : sourceRootOf(projectDir);
       const report = verifyImplementations(graph, sourceRoot);
       const contract = verifyRejectionHandling(graph, sourceRoot);
 

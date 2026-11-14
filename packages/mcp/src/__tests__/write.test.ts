@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createWriteTools } from '../tools/write.js';
@@ -54,6 +54,38 @@ describe('MCP write tools', () => {
     const content = readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8');
     const model = parseYaml(content);
     expect(Object.keys(model.nodes)).toEqual(['place-order', 'order-placed']);
+  });
+
+  // The single edits used to write whatever they were given: a kind no rule
+  // knows, an edge the preset forbids. The model was then invalid, and every
+  // later apply was refused until someone repaired it by hand.
+  it('refuses a node or an edge that would leave the model invalid', async () => {
+    const tools = createWriteTools(projectDir);
+    const before = readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8');
+
+    const node = await tools.eventgraph_add_node({ context: 'payments', id: 'page', type: 'screen', label: 'Page', data: { kind: 'bogus' } });
+    expect(node.success).toBe(false);
+    expect(node.errors?.[0]).toMatch(/invalid-surface-kind/);
+
+    const edge = await tools.eventgraph_add_edge({ context: 'payments', from: 'place-order', to: 'nowhere', type: 'produces' });
+    expect(edge.success).toBe(false);
+    expect(edge.errors?.[0]).toMatch(/dangling-edge/);
+
+    expect(readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8')).toBe(before);
+  });
+
+  it('refuses to add a node over an existing one', async () => {
+    const tools = createWriteTools(projectDir);
+    const result = await tools.eventgraph_add_node({ context: 'payments', id: 'place-order', type: 'event', label: 'Oops' });
+    expect(result).toMatchObject({ success: false, error: expect.stringMatching(/already exists/) });
+    expect(parseYaml(readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8')).nodes['place-order'].type).toBe('command');
+  });
+
+  it('refuses a context the project does not have instead of creating it', async () => {
+    const tools = createWriteTools(projectDir);
+    const result = await tools.eventgraph_add_node({ context: 'ghost', id: 'x', type: 'event', label: 'X' });
+    expect(result).toMatchObject({ success: false, error: expect.stringMatching(/ghost/) });
+    expect(existsSync(join(projectDir, 'contexts', 'ghost'))).toBe(false);
   });
 
   it('returns diff in prompt mode', async () => {

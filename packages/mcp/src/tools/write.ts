@@ -1,7 +1,5 @@
 import {
   loadProject,
-  addNodeToContext,
-  addEdgeToContext,
   removeNodeFromContext,
   generateYamlDiff,
   analyzeImpact,
@@ -9,6 +7,8 @@ import {
   loadPreset,
   parseContextModels,
   type ContextChange,
+  type ContextModelNode,
+  type GraphEdge,
 } from 'eventgraph-core';
 import { presetsDirPath } from './presets.js';
 
@@ -19,8 +19,8 @@ interface WriteResult {
 }
 
 export interface WriteToolsApi {
-  eventgraph_add_node(input: { context: string; id: string; type: string; label: string; data?: Record<string, unknown> }): Promise<WriteResult>;
-  eventgraph_add_edge(input: { context: string; from: string; to: string; type: string }): Promise<WriteResult>;
+  eventgraph_add_node(input: { context: string; id: string; type: string; label: string; data?: Record<string, unknown> }): Promise<ApplyResult>;
+  eventgraph_add_edge(input: { context: string; from: string; to: string; type: string }): Promise<ApplyResult>;
   eventgraph_update_node(input: { nodeId: string; label?: string; data?: Record<string, unknown> }): Promise<WriteResult>;
   eventgraph_remove_node(input: { nodeId: string }): Promise<WriteResult>;
   eventgraph_apply(input: { model: string; replace?: boolean; dryRun?: boolean }): Promise<ApplyResult>;
@@ -54,6 +54,33 @@ export function createWriteTools(projectDir: string): WriteToolsApi {
   const open = () => loadProject(projectDir);
   const writeMode = () => open().config.agent.write;
 
+  const unknownContext = (context: string, known: string[]): WriteResult => ({
+    success: false,
+    error: `Context "${context}" not found. Available: ${known.join(', ')}`,
+  });
+
+  /**
+   * A single edit is a batch of one: it goes through the same merge and the
+   * same validation of the whole as eventgraph_apply, and is written only in
+   * auto mode. Returns the refusal when the result would be invalid.
+   */
+  const invalid = (
+    context: string,
+    change: { nodes?: ContextModelNode[]; edges?: GraphEdge[] },
+    mode: string,
+  ): ApplyResult | undefined => {
+    const preset = loadPreset(open().config.preset, presetsDirPath());
+    const outcome = applyModels(
+      projectDir,
+      [{ context, nodes: change.nodes ?? [], edges: change.edges ?? [] }],
+      preset,
+      { dryRun: mode !== 'auto' },
+    );
+    return outcome.status === 'invalid'
+      ? { success: false, errors: outcome.errors.map(e => `[${e.type}] ${e.message}`) }
+      : undefined;
+  };
+
   return {
     async eventgraph_add_node({ context, id, type, label, data }) {
       const mode = writeMode();
@@ -62,13 +89,17 @@ export function createWriteTools(projectDir: string): WriteToolsApi {
       }
 
       const node = { id, type, label, ...(data ? { data } : {}) };
-
-      if (mode === 'prompt') {
-        const diff = generateYamlDiff(projectDir, context, { addNodes: [node] });
-        return { success: false, pendingDiff: diff };
+      const { config, graph } = open();
+      if (!config.contexts.includes(context)) return unknownContext(context, config.contexts);
+      if (graph.getNode(`${context}.${id}`)) {
+        return { success: false, error: `Node ${context}.${id} already exists. To change it, pass the whole node to eventgraph_apply.` };
       }
 
-      addNodeToContext(projectDir, context, node);
+      const refused = invalid(context, { nodes: [node] }, mode);
+      if (refused) return refused;
+      if (mode === 'prompt') {
+        return { success: false, pendingDiff: generateYamlDiff(projectDir, context, { addNodes: [node] }) };
+      }
       return { success: true };
     },
 
@@ -79,13 +110,14 @@ export function createWriteTools(projectDir: string): WriteToolsApi {
       }
 
       const edge = { from, to, type };
+      const { config } = open();
+      if (!config.contexts.includes(context)) return unknownContext(context, config.contexts);
 
+      const refused = invalid(context, { edges: [edge] }, mode);
+      if (refused) return refused;
       if (mode === 'prompt') {
-        const diff = generateYamlDiff(projectDir, context, { addEdges: [edge] });
-        return { success: false, pendingDiff: diff };
+        return { success: false, pendingDiff: generateYamlDiff(projectDir, context, { addEdges: [edge] }) };
       }
-
-      addEdgeToContext(projectDir, context, edge);
       return { success: true };
     },
 

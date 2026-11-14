@@ -9,6 +9,7 @@ import {
   checkGraph,
   slice,
   lifecycle,
+  sourceRootOf,
   verifyImplementations,
   verifyRejectionHandling,
   collectSources,
@@ -69,7 +70,7 @@ export function createReadTools(projectDir: string): ReadToolsApi {
   const open = () => loadProject(projectDir);
   // Source lives beside the eventgraph directory, so that is where a pointer
   // or a relative root is resolved from — not from wherever the server runs.
-  const sourceRoot = (root?: string) => resolve(projectDir, '..', root ?? '.');
+  const sourceRoot = (root?: string) => resolve(sourceRootOf(projectDir), root ?? '.');
 
   return {
     async eventgraph_query({ expr }) {

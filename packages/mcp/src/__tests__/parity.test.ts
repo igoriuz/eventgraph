@@ -96,6 +96,32 @@ describe('MCP tools on a par with the CLI', () => {
     });
   });
 
+  describe('a project whose eventgraph.yaml sits in the repository root', () => {
+    // root/repo is the project itself; root/sibling is somebody else's code.
+    const flat = () => {
+      const repo = join(root, 'repo');
+      mkdirSync(join(repo, 'contexts', 'app'), { recursive: true });
+      mkdirSync(join(repo, 'src'));
+      mkdirSync(join(root, 'sibling'));
+      writeFileSync(join(repo, 'eventgraph.yaml'), 'name: flat\nversion: 1\npreset: event-modeling\nagent:\n  write: auto\ncontexts:\n  - app\n');
+      writeFileSync(join(repo, 'contexts', 'app', 'model.yaml'), 'context: app\nnodes:\n  act: { type: command, src: src/cli.ts }\nedges: {}\n');
+      writeFileSync(join(repo, 'src', 'cli.ts'), `import { Command } from 'commander';\nprogram.command('own');`);
+      writeFileSync(join(root, 'sibling', 'cli.ts'), `import { Command } from 'commander';\nprogram.command('foreign');`);
+      return repo;
+    };
+
+    it('scaffolds the repository, not its neighbours', async () => {
+      const result = await createReadTools(flat()).eventgraph_scaffold({});
+      expect(result.scanned).toBe(1);
+      expect(result.model).toContain('own-cli');
+      expect(result.model).not.toContain('foreign');
+    });
+
+    it('resolves pointers from the repository', async () => {
+      expect(await createReadTools(flat()).eventgraph_verify({})).toMatchObject({ ok: true, checked: 1 });
+    });
+  });
+
   describe('eventgraph_scaffold', () => {
     it('returns a model to review, and writes nothing', async () => {
       mkdirSync(join(root, 'src'));

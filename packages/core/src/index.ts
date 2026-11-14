@@ -26,6 +26,7 @@ export {
   loadContextIntoGraph,
   readContextModel,
   findProjectDir,
+  sourceRootOf,
 } from './parser.js';
 export {
   scaffold,
