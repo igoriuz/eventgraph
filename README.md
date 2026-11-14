@@ -119,7 +119,8 @@ outside its neighbourhood; Escape clears it.
 
 ## validate vs check
 
-`validate` asks whether the graph has a legal *shape*: known node types, known
+`validate` asks whether the graph has a legal *shape*: known node types, a
+known `kind` on every surface, known
 edge types, edges connecting the types the preset allows.
 
 `check` asks whether it is *complete* — a different question, and the one that
@@ -128,7 +129,7 @@ vocabulary ("this event has no consumer" means nothing without a definition of
 event), so they are opt-in per preset via a `rules:` key. A preset without one
 keeps shape-only validation.
 
-Rules run in five lanes; `check --lane <lane>` narrows to one.
+Rules run in six lanes; `check --lane <lane>` narrows to one.
 
 **bootstrap** — an empty graph must not report success, or the plan-forward loop
 has nothing to pull on: no nodes at all, no actor, no aggregate.
@@ -149,9 +150,10 @@ not graph problems.
 - a screen no navigation path reaches from an entry screen
 - a screen with no action and no way onward
 - a command buried more than three navigations deep
-- a command an actor issues that no reachable screen and no endpoint offers —
-  no button, though its outcome may well be displayed. Offers on notifications
-  and widgets do not count; `triggered_by` names whatever issues it instead
+- a command an actor issues that no reachable screen and no endpoint, `cli` or
+  `tool` offers — no button, though its outcome may well be displayed. Offers
+  on notifications and widgets do not count; `triggered_by` names whatever
+  issues it instead
 - a screen offering an actor a command they may not issue
 
 **backend** — silent unless the model describes one; see below.
@@ -162,6 +164,12 @@ not graph problems.
 - a projection that does not state whether reads are immediate or eventual
 - a command upholding an invariant but modelling no rejection
 - a rejection silenced by `terminal`
+
+**parity** — silent until a `cli` or `tool` surface offers or reads something; see
+[Surfaces without a UI](#surfaces-without-a-ui).
+
+- a command only a human-facing surface offers
+- a read-model only a human-facing surface reads
 
 **platform** — see below.
 
@@ -178,6 +186,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `immortal` | aggregate | genuinely never ends |
 | `detail` | screen | a lightbox; having no action and no way onward is the point |
 | `kind` | screen | which surface this is; only `screen` is navigated to |
+| `ui_only: <reason>` | command, read-model | belongs to the UI on purpose, so no CLI, tool or endpoint needs to reach it |
 | `public: <reason>` | screen | an endpoint deliberately callable without a named caller |
 | `triggered_by` | command | issued by a scheduler or by a screen appearing |
 | `buried: <reason>` | command | more than three navigations deep on purpose, e.g. behind an onboarding funnel |
@@ -264,6 +273,34 @@ declare `platforms: [orders, billing]` and a node implemented in one service but
 not the other reports — the same "information lives between the repositories"
 problem as iOS versus Android.
 
+## Surfaces without a UI
+
+An app whose domain sits behind a command and query interface can be driven
+by an agent or a test as well as by a person — the UI, a CLI and an agent's
+tools are then equal surfaces over the same core. Two more kinds model that
+edge: `cli` for a command-line subcommand and `tool` for an agent tool, such
+as an MCP tool. Both answer their caller, so feedback landing there counts,
+and neither is navigated to. They are not backend surfaces: shipping a CLI
+next to an app does not turn on the backend lane.
+
+The promise only holds for what the headless side actually exposes, and the
+gap is invisible from either side — the UI works, and the CLI works for
+everything it has. Once a `cli` or `tool` offers a command or reads a
+read-model, the parity lane reports
+
+- `command-ui-only` — a command a screen, widget or notification offers but no
+  `cli`, `tool` or `endpoint` does. No agent or test can issue it without
+  clicking.
+- `read-model-ui-only` — a read-model a person sees but no headless surface
+  reads. An agent can act and never find out what came of it.
+
+An endpoint counts as headless access but does not switch the lane on, so a
+plain client-server app never starts reporting. Neither does a `cli` or `tool`
+that is wired to nothing, which is how `scaffold` leaves them: a seed script
+with two subcommands is not a claim that the app runs without its UI. Some things belong to the UI
+for good — a drag to reorder, a chart whose numbers are queried elsewhere —
+and `ui_only: <reason>` says so.
+
 ## Drift between graph and code
 
 `implemented_by` holds pointers into real source, optionally with a `#symbol`
@@ -334,7 +371,9 @@ eventgraph scaffold --root ../ --context app | eventgraph apply -
 ```
 
 It reads HTTP route registrations into endpoints, screens and the navigation
-between them, and ORM table declarations into candidate aggregates. Screens are
+between them, and ORM table declarations into candidate aggregates; in TS and JS,
+commander subcommands and MCP tool registrations become `cli` and `tool`
+surfaces. Screens are
 found however the framework declares them: in the file tree, in a `GoRoute`
 table, or in a `<Route>` element — and a router names screens without
 implementing any, so `implemented_by` points at the component's own file. A
@@ -345,6 +384,21 @@ Commands, events, policies and invariants are deliberately *not* guessed. Those
 are the modelling, and a graph that invented them would look finished while
 being wrong — which is worse than one that is obviously partial. What comes out
 is a skeleton with `check` pointing at everything still missing.
+
+That includes a subcommand or a tool. `orders place` reads like a command and
+`orders list` reads like one too, but only the first changes anything, so both
+come out as surfaces and which domain command each offers is left to you. A
+`.command()` or `.tool()` call counts only in a file importing commander or the
+MCP SDK, since plenty of other libraries have a method by that name. Any
+import will do — a type-only one, a `require`, a dynamic `import()` — but not
+one in a comment, and a call that is commented out or merely quoted in a
+string is not read.
+
+Ids stay put as the code grows. A subcommand registered in one file is
+`list-cli`; one registered in several is prefixed with its file name in all
+of them (`orders-list-cli`, `remote-list-cli`), so no file can take an id
+over from another. Nesting is not resolved: `remote add` and `tag add` in one
+file come out as `add-cli` and `add-cli-2`, in source order, with a note.
 
 ### When the module already says it
 

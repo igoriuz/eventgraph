@@ -27,9 +27,9 @@ const SKIP_DIRS = new Set([
  */
 const NATIVE_DIRS = new Set(['ios', 'android']);
 
-const SOURCE_EXT = /\.(tsx?|jsx?|mjs|cjs|prisma|dart)$/;
+const SOURCE_EXT = /\.(tsx?|jsx?|mjs|cjs|mts|cts|prisma|dart)$/;
 // Generated Dart is enormous and describes nothing the source does not.
-const TEST_FILE = /(^|[./-])(test|spec)\.[tj]sx?$|__tests__|\.stories\.[tj]sx?$|\.(g|freezed|gr)\.dart$/;
+const TEST_FILE = /(^|[./-])(test|spec)\.[cm]?[tj]sx?$|__tests__|\.stories\.[tj]sx?$|\.(g|freezed|gr)\.dart$/;
 
 /**
  * Source files scaffold walks past, by extension. Not a complete list of
@@ -186,12 +186,63 @@ export function blockAt(content: string, open: number): string {
   return content.slice(open);
 }
 
+/**
+ * `content` with its comments blanked out — and, on request, the insides of
+ * its string literals — every other character left at its offset.
+ *
+ * A pattern run over the result cannot match inside a comment, and with the
+ * strings blanked it cannot match text that is merely quoted either. Offsets
+ * are unchanged, so a match is read back from the original at the same place.
+ * The quotes themselves stay, which is what lets a caller find a string
+ * argument here and take its value from there.
+ *
+ * Not a parser: a regex literal containing a quote opens a string that is not
+ * one. A `'` or `"` string therefore ends at the line break at the latest, so
+ * the damage stays within that line.
+ */
+export function blank(content: string, what: 'comments' | 'comments-and-strings'): string {
+  const out = content.split('');
+  const wipe = (from: number, to: number) => {
+    for (let i = from; i < to; i++) if (out[i] !== '\n') out[i] = ' ';
+  };
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i]!;
+
+    if (char === '/' && content[i + 1] === '/') {
+      const end = content.indexOf('\n', i);
+      const stop = end === -1 ? content.length : end;
+      wipe(i, stop);
+      i = stop;
+      continue;
+    }
+    if (char === '/' && content[i + 1] === '*') {
+      const end = content.indexOf('*/', i + 2);
+      const stop = end === -1 ? content.length : end + 2;
+      wipe(i, stop);
+      i = stop - 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === '`') {
+      let close = i + 1;
+      for (; close < content.length; close++) {
+        if (content[close] === '\\') close++;
+        else if (content[close] === char || (char !== '`' && content[close] === '\n')) break;
+      }
+      if (what === 'comments-and-strings') wipe(i + 1, Math.min(close, content.length));
+      i = close;
+    }
+  }
+  return out.join('');
+}
+
 // --- id helpers ------------------------------------------------------------
 
 export function kebab(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[_\s.]+/g, '-')
+    .replace(/[_\s.:]+/g, '-')
     .replace(/[^a-zA-Z0-9-]/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')

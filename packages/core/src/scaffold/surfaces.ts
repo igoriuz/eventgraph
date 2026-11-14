@@ -27,7 +27,7 @@ export interface SurfaceResult {
   routes: Map<string, string>;
 }
 
-function screen(id: string, label: string, src: string, kind?: string): ContextModelNode {
+export function screen(id: string, label: string, src: string, kind?: string): ContextModelNode {
   const data: Record<string, unknown> = { implemented_by: [src], status: 'implemented' };
   if (kind) data.kind = kind;
   return { id, type: 'screen', label, data };

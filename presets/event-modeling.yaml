@@ -89,6 +89,9 @@ rules:
   - read-model-consistency-unstated
   - command-no-rejection
   - failure-silenced
+  # Parity — silent until a cli or tool surface offers or reads something
+  - command-ui-only
+  - read-model-ui-only
   # Platform — silent unless eventgraph.yaml declares platforms
   - platform-drift
   - platform-unknown

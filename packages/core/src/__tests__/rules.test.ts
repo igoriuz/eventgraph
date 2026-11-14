@@ -69,7 +69,7 @@ describe('preset wiring', () => {
     for (const rule of ruleCatalog()) {
       expect(rule.id).toBeTruthy();
       expect(rule.about.length).toBeGreaterThan(20);
-      expect(['bootstrap', 'structure', 'ux', 'backend', 'platform']).toContain(rule.lane);
+      expect(['bootstrap', 'structure', 'ux', 'backend', 'parity', 'platform']).toContain(rule.lane);
     }
   });
 });
@@ -516,6 +516,15 @@ describe('ux', () => {
       graph.addNode({ context: 'app', id: 'api', type: 'screen', label: 'API', data: { kind: 'endpoint' } });
       graph.addEdge(edge('api', 'offers', 'resume'));
       expect(unoffered(graph)).toEqual([]);
+    });
+
+    it('counts an offer on a cli or a tool, which answer their caller', () => {
+      for (const kind of ['cli', 'tool']) {
+        const graph = withResume();
+        graph.addNode({ context: 'app', id: 'resume-surface', type: 'screen', label: 'resume', data: { kind } });
+        graph.addEdge(edge('resume-surface', 'offers', 'resume'));
+        expect(unoffered(graph)).toEqual([]);
+      }
     });
 
     it('accepts a command with a named trigger', () => {

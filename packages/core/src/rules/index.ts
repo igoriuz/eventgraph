@@ -7,6 +7,7 @@ import './structure.js';
 import './ux.js';
 import './platform.js';
 import './backend.js';
+import './parity.js';
 
 export { allRules, getRule } from './kit.js';
 export type { Finding, Lane, Rule, Severity } from './kit.js';
@@ -30,8 +31,15 @@ export function checkGraph(graph: EventGraph, preset: PresetDefinition, options:
   return active.flatMap(rule => rule.check(graph)).sort(byUrgency(graph));
 }
 
-/** Lower sorts first. Bootstrap gaps block everything else by definition. */
-const LANE_RANK: Record<Lane, number> = { bootstrap: 0, structure: 1, ux: 2, backend: 3, platform: 4 };
+/**
+ * Lower sorts first. Bootstrap gaps block everything else by definition.
+ *
+ * Headless sits after backend because it asks what an interface exposes, which
+ * only means something once the flows behind it are whole; and before platform
+ * because a gap in this codebase's own interface is closer to hand than drift
+ * between two of them.
+ */
+const LANE_RANK: Record<Lane, number> = { bootstrap: 0, structure: 1, ux: 2, backend: 3, parity: 4, platform: 5 };
 
 /**
  * Orders findings by what is worth fixing first, which is what makes `next`

@@ -70,4 +70,9 @@ describe('collectSources', () => {
     ]);
     expect(collectSources(root).map(s => s.path)).toEqual(['src/a.tsx', 'src/b.ts']);
   });
+
+  it('reads .mts and .cts, and skips their tests like any other', () => {
+    const root = tree(['src/cli.mts', 'src/cli.test.mts', 'src/old.cts', 'src/old.spec.cts']);
+    expect(collectSources(root).map(s => s.path)).toEqual(['src/cli.mts', 'src/old.cts']);
+  });
 });
