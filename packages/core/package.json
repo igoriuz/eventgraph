@@ -1,6 +1,6 @@
 {
   "name": "eventgraph-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The graph model, completeness rules and source scaffolding behind the eventgraph CLI.",
   "keywords": [
     "event-modeling",
