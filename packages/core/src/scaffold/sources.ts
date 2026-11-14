@@ -196,9 +196,11 @@ export function blockAt(content: string, open: number): string {
  * The quotes themselves stay, which is what lets a caller find a string
  * argument here and take its value from there.
  *
- * Not a parser: a regex literal containing a quote opens a string that is not
- * one. A `'` or `"` string therefore ends at the line break at the latest, so
- * the damage stays within that line.
+ * Not a parser. A regex literal is recognised by what stands before it, so
+ * that a quote or a backtick inside one does not open a string — a lone
+ * backtick used to blank the file up to the next one. Where the guess is
+ * wrong, as in JSX text, a `'` or `"` string still ends at the line break at
+ * the latest and a regex never spans lines, so the damage stays in that line.
  */
 export function blank(content: string, what: 'comments' | 'comments-and-strings'): string {
   const out = content.split('');
@@ -224,6 +226,12 @@ export function blank(content: string, what: 'comments' | 'comments-and-strings'
       continue;
     }
 
+    if (char === '/') {
+      const end = regexEnd(content, i);
+      if (end !== -1) i = end;
+      continue;
+    }
+
     if (char === '"' || char === "'" || char === '`') {
       let close = i + 1;
       for (; close < content.length; close++) {
@@ -237,12 +245,40 @@ export function blank(content: string, what: 'comments' | 'comments-and-strings'
   return out.join('');
 }
 
+/** Words after which a `/` starts a regex rather than dividing. */
+const BEFORE_REGEX = new Set(['return', 'typeof', 'case', 'in', 'of', 'do', 'else', 'void', 'throw', 'new', 'delete', 'await', 'yield']);
+
+/**
+ * The index of the closing `/` of a regex literal opening at `open`, or -1
+ * when the slash there is a division. A slash divides after a value — a name,
+ * a number, a closing bracket — and opens a regex after anything else.
+ */
+function regexEnd(content: string, open: number): number {
+  let before = open - 1;
+  while (before >= 0 && /\s/.test(content[before]!)) before--;
+  if (before >= 0 && /[\w$)\]}'"`]/.test(content[before]!)) {
+    const word = /[A-Za-z]+$/.exec(content.slice(Math.max(0, before - 9), before + 1))?.[0];
+    if (!word || !BEFORE_REGEX.has(word)) return -1;
+  }
+
+  let inClass = false;
+  for (let i = open + 1; i < content.length; i++) {
+    const char = content[i]!;
+    if (char === '\n') return -1;
+    if (char === '\\') i++;
+    else if (char === '[') inClass = true;
+    else if (char === ']') inClass = false;
+    else if (char === '/' && !inClass) return i;
+  }
+  return -1;
+}
+
 // --- id helpers ------------------------------------------------------------
 
 export function kebab(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[_\s.:]+/g, '-')
+    .replace(/[_\s.]+/g, '-')
     .replace(/[^a-zA-Z0-9-]/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')

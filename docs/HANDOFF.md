@@ -86,12 +86,13 @@ graph-wide. `validate` rejects a `kind` outside `SURFACE_KINDS` (an error —
 `validate` has no warnings). `command-unoffered` counts offers on `cli` and
 `tool` like those on endpoints.
 
-Known limits of the extractor, all stated in its header or the README: two
-files with the same stem (`a/index.ts`, `b/index.ts`) registering the same
-name are numbered in sort order, so those ids can still move when a third
-such file appears; same-named nested subcommands in one file are numbered in
-source order; a type-only import of commander counts as importing it,
-deliberately.
+Known limits of the extractor, all stated in its header or the README:
+same-named nested subcommands in one file are numbered in source order; a
+type-only import of commander counts as importing it, deliberately; a name
+registered in several files is prefixed with file name and, where those match,
+directory, so a prefix only changes when a new file collides with an existing
+one on both; `blank` tells a regex literal from a division by what precedes
+it, which JSX text can fool within one line.
 
 Why it exists: the "headless core" architecture puts an app's domain logic
 behind a command/query interface with UI, CLI, API and agent tools as equal

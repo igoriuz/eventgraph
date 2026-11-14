@@ -99,6 +99,28 @@ describe('what is not a registration', () => {
     ]);
   });
 
+  // A backtick in a regex opened a template literal that ran to the next
+  // backtick, and everything between — every registration — was blanked.
+  it('is not thrown off by a quote or a backtick inside a regex literal', () => {
+    const body = [
+      'const tick = /`/g;',
+      "const quote = text.replace(/'/g, '');",
+      "program.command('one');",
+      'const label = `x`;',
+      "program.command('two');",
+      "if (/https?:\\/\\//.test(url)) program.command('three');",
+    ].join('\n');
+    expect(ids([cli(body)])).toEqual(['one-cli', 'two-cli', 'three-cli']);
+  });
+
+  it('still reads a registration after a division', () => {
+    expect(ids([cli("const half = total / 2; program.command('one'); const q = a / b;")])).toEqual(['one-cli']);
+  });
+
+  it('does not take an import quoted inside a string as importing commander', () => {
+    expect(ids([src('src/bot.ts', `const hint = "import { Command } from 'commander'";\nbot.command('start');`)])).toEqual([]);
+  });
+
   it('does not take a commented-out import as importing commander', () => {
     expect(ids([src('src/bot.ts', `// import { Command } from 'commander';\nbot.command('start');`)])).toEqual([]);
   });
@@ -184,6 +206,23 @@ describe('ids', () => {
       ['add-cli-2', 'add <name>'],
     ]);
     expect(notes.join(' ')).toMatch(/1 name\(s\) registered more than once in one file/);
+  });
+
+  // Two files called index.ts used to be told apart by a number in sort
+  // order, so a third one sorting first renumbered the other two.
+  it('tells same-named files apart by their directory, so the ids stay put', () => {
+    const file = (dir: string) => src(`src/${dir}/index.ts`, `import { Command } from 'commander';\nprogram.command('add');`);
+    const before = ids([file('remote'), file('tag')]);
+    expect(before).toEqual(['remote-index-add-cli', 'tag-index-add-cli']);
+    expect(ids([file('archive'), file('remote'), file('tag')])).toEqual(['archive-index-add-cli', ...before]);
+  });
+
+  it('says so when a name has no letters an id can carry', () => {
+    const { model, notes } = scaffold([src('src/cli.ts', `import { Command } from 'commander';\nprogram.command('删除');\nprogram.command('keep');`)], {
+      only: ['headless'],
+    });
+    expect(model.nodes.map(n => n.id)).toEqual(['keep-cli']);
+    expect(notes.join(' ')).toMatch(/1 name\(s\) left out/);
   });
 
   it('turns a colon in a subcommand name into a dash', () => {

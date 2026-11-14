@@ -295,6 +295,9 @@ describe('naming helpers', () => {
   it('kebabs camel case and separators alike', () => {
     expect(kebab('confidence_scores')).toBe('confidence-scores');
     expect(kebab('placeOrder')).toBe('place-order');
+    // A colon is dropped, not turned into a dash: endpoint ids such as the one
+    // for `/v1/things:search` are already in people's models.
+    expect(kebab('things:search')).toBe('thingssearch');
   });
 
   it('singularises plurals without mangling words that end in s', () => {
