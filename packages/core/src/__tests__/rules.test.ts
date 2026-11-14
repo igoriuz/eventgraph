@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EventGraph } from '../graph.js';
-import { checkGraph, ruleCatalog, resolveRules, unknownRuleIds } from '../rules/index.js';
+import { checkGraph, LANES, ruleCatalog, resolveRules, unknownRuleIds } from '../rules/index.js';
 import type { GraphEdge, GraphNode, PresetDefinition } from '../schema.js';
 
 const PRESET = (rules: string[]): PresetDefinition => ({
@@ -69,7 +69,7 @@ describe('preset wiring', () => {
     for (const rule of ruleCatalog()) {
       expect(rule.id).toBeTruthy();
       expect(rule.about.length).toBeGreaterThan(20);
-      expect(['bootstrap', 'structure', 'ux', 'backend', 'parity', 'platform']).toContain(rule.lane);
+      expect(LANES).toContain(rule.lane);
     }
   });
 });

@@ -6,7 +6,7 @@ import type { EventGraph } from './graph.js';
 import { SURFACE_KINDS } from './rules/kit.js';
 
 export interface ValidationError {
-  type: 'invalid-node-type' | 'invalid-surface-kind' | 'invalid-edge-type' | 'edge-rule-violation' | 'dangling-edge';
+  type: 'invalid-name' | 'invalid-node-type' | 'invalid-surface-kind' | 'invalid-edge-type' | 'edge-rule-violation' | 'dangling-edge';
   message: string;
   nodeId?: string;
   edgeFrom?: string;
@@ -19,31 +19,35 @@ export function loadPreset(name: string, presetsDir: string): PresetDefinition {
   return parseYaml(content) as PresetDefinition;
 }
 
-export function validateGraph(graph: EventGraph, preset: PresetDefinition): ValidationError[] {
+/** A node's type must be one the preset knows, and a surface's kind one the rules know. */
+function nodeErrors(graph: EventGraph, preset: PresetDefinition): ValidationError[] {
   const errors: ValidationError[] = [];
-  const isPermissive = preset.nodeTypes.length === 0 && preset.edgeTypes.length === 0;
-
-  if (!isPermissive) {
-    for (const node of graph.getAllNodes()) {
-      if (!preset.nodeTypes.includes(node.type)) {
-        errors.push({
-          type: 'invalid-node-type',
-          message: `Node "${node.context}.${node.id}" has invalid type "${node.type}". Allowed: ${preset.nodeTypes.join(', ')}`,
-          nodeId: `${node.context}.${node.id}`,
-        });
-      }
-      // The rules tell surfaces apart by kind and treat one they do not know
-      // as nothing in particular, so a typo here silently switches a lane off.
-      const kind = node.data?.kind;
-      if (node.type === 'screen' && kind !== undefined && !(SURFACE_KINDS as readonly unknown[]).includes(kind)) {
-        errors.push({
-          type: 'invalid-surface-kind',
-          message: `Node "${node.context}.${node.id}" has unknown kind "${String(kind)}". Allowed: ${SURFACE_KINDS.join(', ')}`,
-          nodeId: `${node.context}.${node.id}`,
-        });
-      }
+  for (const node of graph.getAllNodes()) {
+    const nodeId = `${node.context}.${node.id}`;
+    if (!preset.nodeTypes.includes(node.type)) {
+      errors.push({
+        type: 'invalid-node-type',
+        message: `Node "${nodeId}" has invalid type "${node.type}". Allowed: ${preset.nodeTypes.join(', ')}`,
+        nodeId,
+      });
+    }
+    // The rules tell surfaces apart by kind and treat one they do not know
+    // as nothing in particular, so a typo here silently switches a lane off.
+    const kind = node.data?.kind;
+    if (node.type === 'screen' && kind !== undefined && !(SURFACE_KINDS as readonly unknown[]).includes(kind)) {
+      errors.push({
+        type: 'invalid-surface-kind',
+        message: `Node "${nodeId}" has unknown kind "${String(kind)}". Allowed: ${SURFACE_KINDS.join(', ')}`,
+        nodeId,
+      });
     }
   }
+  return errors;
+}
+
+export function validateGraph(graph: EventGraph, preset: PresetDefinition): ValidationError[] {
+  const isPermissive = preset.nodeTypes.length === 0 && preset.edgeTypes.length === 0;
+  const errors: ValidationError[] = isPermissive ? [] : nodeErrors(graph, preset);
 
   for (const edge of graph.getAllEdges()) {
     const fromNode = graph.getNode(edge.from);

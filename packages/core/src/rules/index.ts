@@ -1,6 +1,6 @@
 import type { EventGraph } from '../graph.js';
 import type { PresetDefinition } from '../schema.js';
-import { allRules, getRule, type Finding, type Lane, type Rule } from './kit.js';
+import { allRules, getRule, LANES, type Finding, type Lane, type Rule } from './kit.js';
 
 // Registering the rule modules is a side effect of importing them.
 import './structure.js';
@@ -9,7 +9,7 @@ import './platform.js';
 import './backend.js';
 import './parity.js';
 
-export { allRules, getRule } from './kit.js';
+export { allRules, getRule, LANES } from './kit.js';
 export type { Finding, Lane, Rule, Severity } from './kit.js';
 
 export interface CheckOptions {
@@ -39,7 +39,7 @@ export function checkGraph(graph: EventGraph, preset: PresetDefinition, options:
  * because a gap in this codebase's own interface is closer to hand than drift
  * between two of them.
  */
-const LANE_RANK: Record<Lane, number> = { bootstrap: 0, structure: 1, ux: 2, backend: 3, parity: 4, platform: 5 };
+const laneRank = (lane: Lane) => LANES.indexOf(lane);
 
 /**
  * Orders findings by what is worth fixing first, which is what makes `next`
@@ -55,7 +55,7 @@ function byUrgency(graph: EventGraph): (a: Finding, b: Finding) => number {
     graph.getIncomingEdges(id).length + graph.getOutgoingEdges(id).length;
 
   return (a, b) =>
-    LANE_RANK[a.lane] - LANE_RANK[b.lane] ||
+    laneRank(a.lane) - laneRank(b.lane) ||
     (a.severity === 'error' ? 0 : 1) - (b.severity === 'error' ? 0 : 1) ||
     degree(b.node) - degree(a.node) ||
     a.node.localeCompare(b.node);

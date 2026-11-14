@@ -3,7 +3,9 @@ import type { GraphNode } from '../schema.js';
 import { qualifiedId } from '../schema.js';
 
 export type Severity = 'error' | 'warn';
-export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend' | 'parity';
+/** The lanes, in the order `check` reports them — the one list every adapter takes its choices from. */
+export const LANES = ['bootstrap', 'structure', 'ux', 'backend', 'parity', 'platform'] as const;
+export type Lane = (typeof LANES)[number];
 
 export interface Finding {
   rule: string;

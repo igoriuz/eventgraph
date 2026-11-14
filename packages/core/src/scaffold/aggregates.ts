@@ -1,5 +1,6 @@
 import type { ContextModelNode } from '../schema.js';
-import { IdSet, kebab, singularise, titleise, type ScaffoldSource } from './sources.js';
+import { IdSet, kebab, singularise, titleise } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
 
 /**
  * Finds the consistency boundaries a persistence layer already declares.

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import type { ProjectConfig, ContextModel } from './schema.js';
 import { qualifiedId } from './schema.js';
@@ -59,6 +59,20 @@ export function loadProject(projectDir: string): { config: ProjectConfig; graph:
   }
 
   return { config, graph };
+}
+
+/**
+ * Where the code a project describes lives, and so where source pointers and
+ * a scan start from by default.
+ *
+ * Usually the model sits in an `eventgraph` directory inside the repository
+ * and the source is one level up. `findProjectDir` also accepts a project
+ * whose `eventgraph.yaml` lies in the repository root itself, and one level up
+ * from there is every neighbouring repository.
+ */
+export function sourceRootOf(projectDir: string): string {
+  const dir = resolve(projectDir);
+  return basename(dir) === 'eventgraph' ? resolve(dir, '..') : dir;
 }
 
 function isProjectDir(dir: string): boolean {

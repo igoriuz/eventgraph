@@ -53,7 +53,7 @@ describe('MCP server over stdio', () => {
       arguments: { model: 'context: app\nnodes:\n  home: { type: screen, entry: true }\nedges: {}\n', dryRun: true },
     });
     const text = (result.content as Array<{ text: string }>)[0]!.text;
-    expect(JSON.parse(text)).toMatchObject({ success: true, dryRun: true, changes: [{ context: 'app', nodesAdded: 1 }] });
+    expect(JSON.parse(text)).toMatchObject({ status: 'planned', changes: [{ context: 'app', nodesAdded: 1 }] });
     expect(readFileSync(join(dir, 'eventgraph', 'contexts', 'app', 'model.yaml'), 'utf8')).not.toContain('home');
   });
 

@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { addNodeToContext, loadConfig, findProjectDir } from 'eventgraph-core';
+import { addNodeToContext, isPlainName, loadConfig, findProjectDir } from 'eventgraph-core';
 import type { ContextModelNode } from 'eventgraph-core';
 
 /**
@@ -47,6 +47,11 @@ export function registerAddCommand(program: Command): void {
       if (!projectDir) {
         console.error('Error: No eventgraph project found. Run "eventgraph init" first.');
         process.exit(1);
+      }
+
+      if (!isPlainName(id)) {
+        console.error(`Error: node id "${id}" must be a plain name: letters, digits, "-" and "_".`);
+        process.exit(2);
       }
 
       const config = loadConfig(projectDir);

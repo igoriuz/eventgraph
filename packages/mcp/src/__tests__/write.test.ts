@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createWriteTools } from '../tools/write.js';
@@ -43,17 +43,47 @@ describe('MCP write tools', () => {
   it('adds a node in auto mode', async () => {
     const tools = createWriteTools(projectDir);
 
-    const result = await tools.eventgraph_add_node({
+    const result = await tools.eventgraph_add_node.run({
       context: 'payments',
       id: 'order-placed',
       type: 'event',
       label: 'Order Placed',
     });
-    expect(result.success).toBe(true);
+    expect(result.status).toBe('applied');
 
     const content = readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8');
     const model = parseYaml(content);
     expect(Object.keys(model.nodes)).toEqual(['place-order', 'order-placed']);
+  });
+
+  // The single edits used to write whatever they were given: a kind no rule
+  // knows, an edge the preset forbids. The model was then invalid, and every
+  // later apply was refused until someone repaired it by hand.
+  it('refuses a node or an edge that would leave the model invalid', async () => {
+    const tools = createWriteTools(projectDir);
+    const before = readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8');
+
+    const node = await tools.eventgraph_add_node.run({ context: 'payments', id: 'page', type: 'screen', label: 'Page', data: { kind: 'bogus' } });
+    expect(node).toMatchObject({ status: 'invalid', errors: [expect.stringMatching(/invalid-surface-kind/)] });
+
+    const edge = await tools.eventgraph_add_edge.run({ context: 'payments', from: 'place-order', to: 'nowhere', type: 'produces' });
+    expect(edge).toMatchObject({ status: 'invalid', errors: [expect.stringMatching(/dangling-edge/)] });
+
+    expect(readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8')).toBe(before);
+  });
+
+  it('refuses to add a node over an existing one', async () => {
+    const tools = createWriteTools(projectDir);
+    const result = await tools.eventgraph_add_node.run({ context: 'payments', id: 'place-order', type: 'event', label: 'Oops' });
+    expect(result).toMatchObject({ status: 'refused', error: expect.stringMatching(/already exists/) });
+    expect(parseYaml(readFileSync(join(projectDir, 'contexts', 'payments', 'model.yaml'), 'utf-8')).nodes['place-order'].type).toBe('command');
+  });
+
+  it('refuses a context the project does not have instead of creating it', async () => {
+    const tools = createWriteTools(projectDir);
+    const result = await tools.eventgraph_add_node.run({ context: 'ghost', id: 'x', type: 'event', label: 'X' });
+    expect(result).toMatchObject({ status: 'refused', error: expect.stringMatching(/ghost/) });
+    expect(existsSync(join(projectDir, 'contexts', 'ghost'))).toBe(false);
   });
 
   it('returns diff in prompt mode', async () => {
@@ -69,15 +99,13 @@ contexts:
 `);
     const tools = createWriteTools(egDir);
 
-    const result = await tools.eventgraph_add_node({
+    const result = await tools.eventgraph_add_node.run({
       context: 'payments',
       id: 'order-placed',
       type: 'event',
       label: 'Order Placed',
     });
-    expect(result.success).toBe(false);
-    expect(result.pendingDiff).toBeDefined();
-    expect(result.pendingDiff).toContain('order-placed');
+    expect(result).toMatchObject({ status: 'proposed', pendingDiff: expect.stringContaining('order-placed') });
   });
 
   it('rejects writes in locked mode', async () => {
@@ -93,14 +121,13 @@ contexts:
 `);
     const tools = createWriteTools(egDir);
 
-    const result = await tools.eventgraph_add_node({
+    const result = await tools.eventgraph_add_node.run({
       context: 'payments',
       id: 'order-placed',
       type: 'event',
       label: 'Order Placed',
     });
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('locked');
+    expect(result).toMatchObject({ status: 'refused', error: expect.stringContaining('locked') });
   });
 });
 
@@ -124,23 +151,23 @@ describe('a write is visible to the next call', () => {
     const read = createReadTools(projectDir);
 
     // Read first, so any cached graph would be the one without the node.
-    expect((await read.eventgraph_query({ expr: 'type:event' })).nodes).toHaveLength(0);
+    expect((await read.eventgraph_query.run({ expr: 'type:event' })).nodes).toHaveLength(0);
 
-    await write.eventgraph_add_node({
+    await write.eventgraph_add_node.run({
       context: 'payments',
       id: 'order-placed',
       type: 'event',
       label: 'Order Placed',
     });
 
-    const found = await read.eventgraph_query({ expr: 'type:event' });
+    const found = await read.eventgraph_query.run({ expr: 'type:event' });
     expect(found.nodes.map(n => n.id)).toEqual(['order-placed']);
-    expect((await read.eventgraph_get_node({ nodeId: 'payments.order-placed' })).node).not.toBeNull();
+    expect((await read.eventgraph_get_node.run({ nodeId: 'payments.order-placed' })).node).not.toBeNull();
   });
 
   it('sees a node written to the files by anything else', async () => {
     const read = createReadTools(projectDir);
-    expect((await read.eventgraph_query({ expr: 'type:aggregate' })).nodes).toHaveLength(0);
+    expect((await read.eventgraph_query.run({ expr: 'type:aggregate' })).nodes).toHaveLength(0);
 
     // Stands in for the CLI editing the model in another terminal.
     writeFileSync(
@@ -148,7 +175,7 @@ describe('a write is visible to the next call', () => {
       'context: payments\nnodes:\n  order: { type: aggregate }\nedges: {}\n'
     );
 
-    const found = await read.eventgraph_query({ expr: 'type:aggregate' });
+    const found = await read.eventgraph_query.run({ expr: 'type:aggregate' });
     expect(found.nodes.map(n => n.id)).toEqual(['order']);
   });
 
@@ -160,13 +187,12 @@ describe('a write is visible to the next call', () => {
       'name: test\nversion: 1\npreset: event-modeling\nagent:\n  write: locked\ncontexts:\n  - payments\n'
     );
 
-    const result = await write.eventgraph_add_node({
+    const result = await write.eventgraph_add_node.run({
       context: 'payments',
       id: 'order-placed',
       type: 'event',
       label: 'Order Placed',
     });
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/locked/);
+    expect(result).toMatchObject({ status: 'refused', error: expect.stringMatching(/locked/) });
   });
 });

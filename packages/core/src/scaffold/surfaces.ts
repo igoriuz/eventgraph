@@ -1,6 +1,7 @@
 import type { ContextModelNode, GraphEdge } from '../schema.js';
 import { extractNavigation } from './navigation.js';
-import { IdSet, kebab, titleise, type ScaffoldSource } from './sources.js';
+import { IdSet, kebab, titleise } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
 
 /**
  * Finds the outside edge of the system: HTTP endpoints on the server and

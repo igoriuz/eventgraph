@@ -396,8 +396,9 @@ string is not read.
 
 Ids stay put as the code grows. A subcommand registered in one file is
 `list-cli`; one registered in several is prefixed with its file name in all
-of them (`orders-list-cli`, `remote-list-cli`), so no file can take an id
-over from another. Nesting is not resolved: `remote add` and `tag add` in one
+of them (`orders-list-cli`, `remote-list-cli`), and with its directory too
+where the file names match (`remote-index-add-cli`), so no file can take an
+id over from another. Nesting is not resolved: `remote add` and `tag add` in one
 file come out as `add-cli` and `add-cli-2`, in source order, with a note.
 
 ### When the module already says it

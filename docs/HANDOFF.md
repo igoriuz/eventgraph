@@ -8,11 +8,24 @@ Last updated: 2026-11-12
 
 Nothing queued. Released is 0.2.0; `main` is ahead of it by the parity lane
 (surface kinds `cli`/`tool`, lane `parity`, `validate` rejecting unknown
-kinds) and by MCP parity (`eventgraph_apply`, `eventgraph_verify`,
-`eventgraph_scaffold`; the merge logic of `apply` now lives in
-`packages/core/src/apply.ts`). A release needs the versions raised in the four
-`package.json` files, `packages/cli/src/index.ts` and
-`packages/mcp/src/server.ts`, then a tag `v*`.
+kinds), MCP parity (`eventgraph_apply`, `eventgraph_verify`,
+`eventgraph_scaffold`) and the fixes from the review of 2026-11-14. A release
+needs the versions raised in the four `package.json` files,
+`packages/cli/src/index.ts` and `packages/mcp/src/server.ts`, then a tag `v*`.
+
+For the release notes — what changes for someone on 0.2.0:
+- MCP writes answer with `status` (`applied`, `planned`, `proposed`,
+  `refused`, `invalid`) instead of `success`.
+- `eventgraph_add_node` refuses an id that exists and, like `add_edge`, a
+  change that leaves the model invalid; `eventgraph_init_context` obeys
+  `agent.write` and no longer empties an existing context.
+- Context names and node ids must be plain names (letters, digits, `-`, `_`).
+- `validate` rejects an unknown surface `kind`; `apply` therefore refuses it.
+- A merge with `apply` keeps the comments in the file.
+- `verify` resolves pointers from the project directory itself when
+  `eventgraph.yaml` is not inside a directory named `eventgraph`.
+- New rules in the preset: `command-unoffered`, `command-buried`, and the
+  parity lane.
 
 ### Igor decides
 
@@ -61,16 +74,21 @@ kinds) and by MCP parity (`eventgraph_apply`, `eventgraph_verify`,
   baseline); reverse drift (scaffold vs. model as a check); `check --context`
   and cross-context rules; more scaffold sources (Kotlin/Ktor, Swift, Godot)
   per concrete project only.
-- Maintenance, from the unread-languages change: the list of languages
-  scaffold reads exists as `SOURCE_EXT` in core, as the `READ` string in the
-  CLI and in the README (export one list from core); `scaffold/sources.ts`
-  holds file collection, `blockAt`, id helpers and inflection in one file.
-- Maintenance, not bugs: the lane list is written out in six places (export one
-  `LANES` const from core); surface-kind properties are spread over five lists
-  plus a hardcoded `'cli' || 'tool'` (one table per kind); comment/string
-  skipping is written in `blockAt` and again in `blank` (both in
-  `scaffold/sources.ts`), and by hand in other extractors; `scaffold()` in
-  `scaffold/index.ts` repeats one block per extractor.
+- Maintenance, not bugs: the list of languages scaffold reads exists as
+  `SOURCE_EXT` in core, as the `READ` string in the CLI, in an MCP tool
+  description and in the README (export one list from core); surface-kind
+  properties are spread over five lists plus a hardcoded `'cli' || 'tool'`
+  (one table per kind); `scaffold()` in `scaffold/index.ts` repeats one block
+  per extractor; `presetsDir` is written once in the CLI and once in MCP;
+  `extractSpacetime` (CCN 40) and three other extractors are over the
+  complexity limit.
+- From the review of 2026-11-14, left as they are: the MCP server exits at
+  startup on a model file that does not parse, so such a file cannot be
+  repaired through it; `command-buried` still reports a command four screens
+  deep that a `cli` also offers; apply stages its files and moves them into
+  place, which narrows a failed write to one context but is not a transaction
+  across several; a CLI and an MCP server writing at the same moment are
+  unguarded.
 
 ## The parity lane (merged 2026-11-14, unreleased)
 
@@ -86,12 +104,13 @@ graph-wide. `validate` rejects a `kind` outside `SURFACE_KINDS` (an error —
 `validate` has no warnings). `command-unoffered` counts offers on `cli` and
 `tool` like those on endpoints.
 
-Known limits of the extractor, all stated in its header or the README: two
-files with the same stem (`a/index.ts`, `b/index.ts`) registering the same
-name are numbered in sort order, so those ids can still move when a third
-such file appears; same-named nested subcommands in one file are numbered in
-source order; a type-only import of commander counts as importing it,
-deliberately.
+Known limits of the extractor, all stated in its header or the README:
+same-named nested subcommands in one file are numbered in source order; a
+type-only import of commander counts as importing it, deliberately; a name
+registered in several files is prefixed with file name and, where those match,
+directory, so a prefix only changes when a new file collides with an existing
+one on both; `blank` tells a regex literal from a division by what precedes
+it, which JSX text can fool within one line.
 
 Why it exists: the "headless core" architecture puts an app's domain logic
 behind a command/query interface with UI, CLI, API and agent tools as equal

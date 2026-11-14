@@ -15,6 +15,7 @@ export {
   GENERIC_EDGE_TYPES,
   qualifiedId,
   parseQualifiedId,
+  isPlainName,
 } from './schema.js';
 
 export { EventGraph } from './graph.js';
@@ -25,6 +26,7 @@ export {
   loadContextIntoGraph,
   readContextModel,
   findProjectDir,
+  sourceRootOf,
 } from './parser.js';
 export {
   scaffold,
@@ -85,6 +87,7 @@ export {
   ruleCatalog,
   allRules,
   getRule,
+  LANES,
   type CheckOptions,
   type Finding,
   type Lane,

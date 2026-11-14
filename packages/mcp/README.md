@@ -29,6 +29,9 @@ merged result before anything is written — the way to describe a model.
 `eventgraph_add_node` (with its flags in `data`), `eventgraph_add_edge` and
 `eventgraph_remove_node` are for single edits. Whether these apply directly or
 propose a diff is the project's call, via `agent.write` in `eventgraph.yaml`.
+Every write answers with a `status`: `applied`, `planned` (a dry run),
+`proposed` (prompt mode, with the diff), `refused` or `invalid` (with the
+validation errors; nothing was written).
 
 Starting from code: `eventgraph_scaffold` returns a partial model read from
 source and writes nothing; review it, then pass it to `eventgraph_apply`.

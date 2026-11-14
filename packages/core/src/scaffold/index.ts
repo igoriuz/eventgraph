@@ -5,12 +5,13 @@ import { extractHeadless } from './headless.js';
 import { extractReactRouter } from './react-router.js';
 import { extractSpacetime } from './spacetime.js';
 import { extractEndpoints, extractScreens } from './surfaces.js';
-import { IdSet, type ScaffoldSource } from './sources.js';
+import { IdSet } from './naming.js';
+import type { ScaffoldSource } from './sources.js';
 
 export { collectSources, unreadLanguages, type ScaffoldSource, type UnreadLanguage } from './sources.js';
 
-export type Extractor = 'endpoints' | 'headless' | 'screens' | 'aggregates' | 'domain';
-export const EXTRACTORS: Extractor[] = ['endpoints', 'headless', 'screens', 'aggregates', 'domain'];
+export const EXTRACTORS = ['endpoints', 'headless', 'screens', 'aggregates', 'domain'] as const;
+export type Extractor = (typeof EXTRACTORS)[number];
 
 export interface ScaffoldOptions {
   context?: string;
