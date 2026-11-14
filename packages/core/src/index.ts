@@ -47,6 +47,13 @@ export {
   addEdgeToDocument,
   removeNodeFromDocument,
 } from './model-file.js';
+export {
+  applyModels,
+  parseContextModels,
+  type ApplyOptions,
+  type ApplyOutcome,
+  type ContextChange,
+} from './apply.js';
 export { QueryEngine } from './query.js';
 export {
   slice,
