@@ -3,7 +3,7 @@ import type { GraphNode } from '../schema.js';
 import { qualifiedId } from '../schema.js';
 
 export type Severity = 'error' | 'warn';
-export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend' | 'headless';
+export type Lane = 'bootstrap' | 'structure' | 'ux' | 'platform' | 'backend' | 'parity';
 
 export interface Finding {
   rule: string;

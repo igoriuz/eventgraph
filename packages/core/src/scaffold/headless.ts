@@ -1,6 +1,6 @@
 import type { ContextModelNode } from '../schema.js';
 import { screen } from './surfaces.js';
-import { IdSet, kebab, type ScaffoldSource } from './sources.js';
+import { blank, IdSet, kebab, type ScaffoldSource } from './sources.js';
 
 /**
  * Finds the headless edge of an app: CLI subcommands and agent tools, the
@@ -25,18 +25,27 @@ import { IdSet, kebab, type ScaffoldSource } from './sources.js';
  *     as are tools listed through a raw `ListTools` request handler.
  *
  * Nesting is not resolved: `remote add` registered as `.command('add')` on a
- * `remote` subcommand comes out as `add`.
+ * `remote` subcommand comes out as `add`, and a second `add` in the same file
+ * as `add-cli-2`.
+ *
+ * Comments are not read, and neither is a registration that is only text
+ * inside a string. The import may be a type-only one: a registration function
+ * typed against `Command` imports nothing else, and its `.command()` is real.
  */
 
-const SCRIPT = /\.(tsx?|jsx?|mjs|cjs)$/;
+const SCRIPT = /\.(tsx?|jsx?|mjs|cjs|mts|cts)$/;
 
-// A computed name (`${prefix}-run`) is skipped by refusing `$` inside it.
-const SUBCOMMAND = /\.\s*command\s*\(\s*(['"`])([^'"`$]+)\1/g;
-const COMMANDER = /\bfrom\s+['"](?:commander|@commander-js\/extra-typings)['"]|\brequire\s*\(\s*['"]commander['"]\s*\)/;
-const PROGRAM_NAME = /\.\s*name\s*\(\s*(['"`])([^'"`$]+)\1/g;
+// Matched against source whose string contents are blanked, so each ends on
+// the opening quote of a literal first argument.
+const SUBCOMMAND = /\.\s*command\s*\(\s*['"`]/g;
+const PROGRAM_NAME = /\.\s*name\s*\(\s*['"`]/g;
+const MCP_TOOL = /\.\s*(?:tool|registerTool)\s*\(\s*['"`]/g;
 
-const MCP_TOOL = /\.\s*(?:tool|registerTool)\s*\(\s*(['"`])([^'"`$]+)\1/g;
-const MCP_SDK = /['"]@modelcontextprotocol\/sdk[/'"]/;
+// Matched against source with only its comments blanked.
+const imports = (pkg: string) =>
+  new RegExp(`\\bfrom\\s+['"]${pkg}(?:/[^'"]*)?['"]|\\b(?:require|import)\\s*\\(\\s*['"]${pkg}(?:/[^'"]*)?['"]\\s*\\)`);
+const COMMANDER = imports('(?:commander|@commander-js/extra-typings)');
+const MCP_SDK = imports('@modelcontextprotocol/sdk');
 
 export interface HeadlessResult {
   nodes: ContextModelNode[];
@@ -46,11 +55,29 @@ export interface HeadlessResult {
 /** File name without directory or extension, to tell same-named surfaces apart. */
 const stem = (path: string) => path.slice(path.lastIndexOf('/') + 1).replace(SCRIPT, '');
 
-function matches(pattern: RegExp, content: string): string[] {
+/** One script, read once in the three forms the patterns need. */
+interface Script {
+  path: string;
+  content: string;
+  /** Comments blanked: what the file imports. */
+  code: string;
+  /** Comments and string contents blanked: where it calls what. */
+  calls: string;
+}
+
+/** The literal first arguments of every call `pattern` finds, in source order. */
+function literalArguments(pattern: RegExp, script: Script): string[] {
   pattern.lastIndex = 0;
   const found: string[] = [];
   let match: RegExpExecArray | null;
-  while ((match = pattern.exec(content)) !== null) found.push(match[2]!.trim());
+  while ((match = pattern.exec(script.calls)) !== null) {
+    const open = match.index + match[0].length - 1;
+    const close = script.calls.indexOf(script.calls[open]!, open + 1);
+    if (close === -1) continue;
+    const value = script.content.slice(open + 1, close).trim();
+    // A computed name (`${prefix}-run`) is skipped rather than guessed.
+    if (value && !value.includes('$')) found.push(value);
+  }
   return found;
 }
 
@@ -59,48 +86,75 @@ function matches(pattern: RegExp, content: string): string[] {
  * It only makes the labels read like the invocation; a CLI split across
  * several programs keeps the bare subcommand rather than a guessed prefix.
  */
-function programName(scripts: ScaffoldSource[]): string | undefined {
-  const names = new Set(scripts.filter(s => COMMANDER.test(s.content)).flatMap(s => matches(PROGRAM_NAME, s.content)));
+function programName(scripts: Script[]): string | undefined {
+  const names = new Set(scripts.filter(s => COMMANDER.test(s.code)).flatMap(s => literalArguments(PROGRAM_NAME, s)));
   return names.size === 1 ? [...names][0] : undefined;
 }
 
+interface Registration {
+  path: string;
+  kind: 'cli' | 'tool';
+  name: string;
+  label: string;
+}
+
 export function extractHeadless(sources: ScaffoldSource[], ids: IdSet): HeadlessResult {
-  const scripts = sources.filter(s => SCRIPT.test(s.path));
+  const scripts: Script[] = sources
+    .filter(s => SCRIPT.test(s.path))
+    .map(s => ({ ...s, code: blank(s.content, 'comments'), calls: blank(s.content, 'comments-and-strings') }));
   const program = programName(scripts);
-  const nodes: ContextModelNode[] = [];
-  const seen = new Set<string>();
+  const registrations: Registration[] = [];
   let unclaimed = 0;
 
-  const add = (source: ScaffoldSource, name: string, label: string, kind: 'cli' | 'tool') => {
-    const key = `${source.path}|${kind}|${name}`;
-    if (!kebab(name) || seen.has(key)) return;
-    seen.add(key);
+  for (const script of scripts) {
+    const declared = literalArguments(SUBCOMMAND, script);
+    if (!COMMANDER.test(script.code)) unclaimed += declared.length;
+    else {
+      for (const usage of declared) {
+        // `add <type> [id]` — the first word is the subcommand, the rest its usage.
+        const name = usage.split(/\s+/)[0]!;
+        registrations.push({ path: script.path, kind: 'cli', name, label: program ? `${program} ${usage}` : usage });
+      }
+    }
+
+    const tools = literalArguments(MCP_TOOL, script);
+    if (!MCP_SDK.test(script.code)) unclaimed += tools.length;
+    else for (const name of tools) registrations.push({ path: script.path, kind: 'tool', name, label: name });
+  }
+
+  // Which files register each name, known before the first id is handed out.
+  // Deciding file by file gave the bare id to whichever sorted first, and a
+  // file added later could take it over from under the edges drawn to it.
+  const filesByName = new Map<string, Set<string>>();
+  const nameKey = (r: Registration) => `${r.kind}|${kebab(r.name)}`;
+  for (const r of registrations) {
+    if (!filesByName.has(nameKey(r))) filesByName.set(nameKey(r), new Set());
+    filesByName.get(nameKey(r))!.add(r.path);
+  }
+
+  const nodes: ContextModelNode[] = [];
+  const seenInFile = new Set<string>();
+  const repeated = new Set<string>();
+  for (const r of registrations.filter(r => kebab(r.name))) {
     // Suffixed even when the bare name is free: a `place-order` subcommand
     // must not take the id its domain command will want.
-    const id = ids.claim(`${name}-${kind}`, `${stem(source.path)}-${name}-${kind}`);
-    nodes.push(screen(id, label, source.path, kind));
-  };
+    const bare = `${r.name}-${r.kind}`;
+    const stemmed = `${stem(r.path)}-${bare}`;
+    const fileKey = `${r.path}|${nameKey(r)}`;
 
-  for (const source of scripts) {
-    const commander = COMMANDER.test(source.content);
-    for (const declared of matches(SUBCOMMAND, source.content)) {
-      if (!commander) {
-        unclaimed++;
-        continue;
-      }
-      // `add <type> [id]` — the first word is the subcommand, the rest its usage.
-      const name = declared.split(/\s+/)[0]!;
-      add(source, name, program ? `${program} ${declared}` : declared, 'cli');
+    let id: string;
+    if (seenInFile.has(fileKey)) {
+      // The same name again in the same file — nested under another parent.
+      // The file name cannot tell the two apart, so it is numbered.
+      repeated.add(fileKey);
+      id = ids.claim(filesByName.get(nameKey(r))!.size > 1 ? stemmed : bare);
+    } else if (filesByName.get(nameKey(r))!.size > 1) {
+      id = ids.claim(stemmed);
+    } else {
+      id = ids.claim(bare, stemmed);
     }
-
-    const mcp = MCP_SDK.test(source.content);
-    for (const name of matches(MCP_TOOL, source.content)) {
-      if (!mcp) {
-        unclaimed++;
-        continue;
-      }
-      add(source, name, name, 'tool');
-    }
+    seenInFile.add(fileKey);
+    nodes.push(screen(id, r.label, r.path, r.kind));
   }
 
   const subcommands = nodes.filter(n => n.data?.kind === 'cli').length;
@@ -111,6 +165,11 @@ export function extractHeadless(sources: ScaffoldSource[], ids: IdSet): Headless
   if (subcommands + tools > 0) {
     notes.push(
       'a subcommand or tool is a surface, not a command — it may only query, so which command it offers and what it reads are left to the modelling'
+    );
+  }
+  if (repeated.size > 0) {
+    notes.push(
+      `${repeated.size} name(s) registered more than once in one file — nesting is not resolved, so the later ones are numbered in source order`
     );
   }
   if (unclaimed > 0) {

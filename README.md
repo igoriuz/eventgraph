@@ -119,7 +119,8 @@ outside its neighbourhood; Escape clears it.
 
 ## validate vs check
 
-`validate` asks whether the graph has a legal *shape*: known node types, known
+`validate` asks whether the graph has a legal *shape*: known node types, a
+known `kind` on every surface, known
 edge types, edges connecting the types the preset allows.
 
 `check` asks whether it is *complete* — a different question, and the one that
@@ -149,9 +150,10 @@ not graph problems.
 - a screen no navigation path reaches from an entry screen
 - a screen with no action and no way onward
 - a command buried more than three navigations deep
-- a command an actor issues that no reachable screen and no endpoint offers —
-  no button, though its outcome may well be displayed. Offers on notifications
-  and widgets do not count; `triggered_by` names whatever issues it instead
+- a command an actor issues that no reachable screen and no endpoint, `cli` or
+  `tool` offers — no button, though its outcome may well be displayed. Offers
+  on notifications and widgets do not count; `triggered_by` names whatever
+  issues it instead
 - a screen offering an actor a command they may not issue
 
 **backend** — silent unless the model describes one; see below.
@@ -163,7 +165,7 @@ not graph problems.
 - a command upholding an invariant but modelling no rejection
 - a rejection silenced by `terminal`
 
-**headless** — silent unless the model declares a `cli` or `tool` surface; see
+**parity** — silent until a `cli` or `tool` surface offers or reads something; see
 [Surfaces without a UI](#surfaces-without-a-ui).
 
 - a command only a human-facing surface offers
@@ -283,8 +285,8 @@ next to an app does not turn on the backend lane.
 
 The promise only holds for what the headless side actually exposes, and the
 gap is invisible from either side — the UI works, and the CLI works for
-everything it has. Once the model declares a `cli` or `tool`, the headless
-lane reports
+everything it has. Once a `cli` or `tool` offers a command or reads a
+read-model, the parity lane reports
 
 - `command-ui-only` — a command a screen, widget or notification offers but no
   `cli`, `tool` or `endpoint` does. No agent or test can issue it without
@@ -293,7 +295,9 @@ lane reports
   reads. An agent can act and never find out what came of it.
 
 An endpoint counts as headless access but does not switch the lane on, so a
-plain client-server app never starts reporting. Some things belong to the UI
+plain client-server app never starts reporting. Neither does a `cli` or `tool`
+that is wired to nothing, which is how `scaffold` leaves them: a seed script
+with two subcommands is not a claim that the app runs without its UI. Some things belong to the UI
 for good — a drag to reorder, a chart whose numbers are queried elsewhere —
 and `ui_only: <reason>` says so.
 
@@ -385,7 +389,16 @@ That includes a subcommand or a tool. `orders place` reads like a command and
 `orders list` reads like one too, but only the first changes anything, so both
 come out as surfaces and which domain command each offers is left to you. A
 `.command()` or `.tool()` call counts only in a file importing commander or the
-MCP SDK, since plenty of other libraries have a method by that name.
+MCP SDK, since plenty of other libraries have a method by that name. Any
+import will do — a type-only one, a `require`, a dynamic `import()` — but not
+one in a comment, and a call that is commented out or merely quoted in a
+string is not read.
+
+Ids stay put as the code grows. A subcommand registered in one file is
+`list-cli`; one registered in several is prefixed with its file name in all
+of them (`orders-list-cli`, `remote-list-cli`), so no file can take an id
+over from another. Nesting is not resolved: `remote add` and `tag add` in one
+file come out as `add-cli` and `add-cli-2`, in source order, with a note.
 
 ### When the module already says it
 

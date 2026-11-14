@@ -83,6 +83,29 @@ describe('validateGraph', () => {
   });
 });
 
+describe('surface kinds', () => {
+  const withKind = (kind: unknown) => {
+    const graph = new EventGraph();
+    graph.addNode({ id: 'surface', type: 'screen', label: 'Surface', context: 'c', data: { kind } });
+    return validateGraph(graph, EVENT_MODELING_PRESET);
+  };
+
+  it('accepts every known kind', () => {
+    for (const kind of ['screen', 'notification', 'widget', 'endpoint', 'consumer', 'job', 'cli', 'tool']) {
+      expect(withKind(kind)).toEqual([]);
+    }
+  });
+
+  // `kind: CLI` or `kind: mcp` used to be read as some unknown surface: no
+  // rule recognised it, and the lane it was meant to switch on stayed off.
+  it('rejects a kind no rule knows', () => {
+    for (const kind of ['CLI', 'mcp', 3]) {
+      expect(withKind(kind).map(e => e.type)).toEqual(['invalid-surface-kind']);
+    }
+    expect(withKind('mcp')[0]!.message).toMatch(/Allowed: screen, notification/);
+  });
+});
+
 describe('loadPreset', () => {
   it('loads event-modeling preset from YAML', () => {
     const preset = loadPreset('event-modeling', new URL('../../../../presets', import.meta.url).pathname);

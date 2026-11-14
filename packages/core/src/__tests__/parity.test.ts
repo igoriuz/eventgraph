@@ -13,8 +13,8 @@ const PRESET = (rules: string[]): PresetDefinition => ({
 });
 
 const ALL = PRESET(ruleCatalog().map(r => r.id));
-const HEADLESS_RULES = ruleCatalog()
-  .filter(r => r.lane === 'headless')
+const PARITY_RULES = ruleCatalog()
+  .filter(r => r.lane === 'parity')
   .map(r => r.id);
 
 function build(nodes: Array<Partial<GraphNode> & { id: string; type: string }>, edges: GraphEdge[] = []): EventGraph {
@@ -28,8 +28,8 @@ function build(nodes: Array<Partial<GraphNode> & { id: string; type: string }>, 
 
 const edge = (from: string, type: string, to: string): GraphEdge => ({ from: `app.${from}`, to: `app.${to}`, type });
 const rulesHit = (graph: EventGraph) => new Set(checkGraph(graph, ALL).map(f => f.rule));
-const headlessHits = (graph: EventGraph) => checkGraph(graph, ALL, { lane: 'headless' });
-const hitIds = (graph: EventGraph) => new Set(headlessHits(graph).map(f => `${f.rule} ${f.node}`));
+const parityHits = (graph: EventGraph) => checkGraph(graph, ALL, { lane: 'parity' });
+const hitIds = (graph: EventGraph) => new Set(parityHits(graph).map(f => `${f.rule} ${f.node}`));
 
 /**
  * An app with a screen that offers a command and shows its outcome, plus a
@@ -69,11 +69,20 @@ function appWithCli(): EventGraph {
   );
 }
 
-describe('the headless lane stays out of models without a headless surface', () => {
+/** appWithCli, but the cli surface is wired to nothing — what scaffold leaves behind. */
+function unwired(): EventGraph {
+  const source = appWithCli();
+  const g = new EventGraph();
+  for (const n of source.getAllNodes()) g.addNode(n);
+  for (const e of source.getAllEdges()) if (e.from !== 'app.sync-cli') g.addEdge(e);
+  return g;
+}
+
+describe('the parity lane stays out of models without a headless surface', () => {
   it('says nothing about a screen-only app', () => {
     const g = appWithCli();
     g.removeNode('app.sync-cli');
-    expect(headlessHits(g)).toEqual([]);
+    expect(parityHits(g)).toEqual([]);
   });
 
   // A plain client-server app has endpoints and screens. That is not a claim
@@ -81,7 +90,20 @@ describe('the headless lane stays out of models without a headless surface', () 
   it('is not switched on by an endpoint alone', () => {
     const g = appWithCli();
     g.getNode('app.sync-cli')!.data = { kind: 'endpoint', public: 'test' };
-    expect(headlessHits(g)).toEqual([]);
+    expect(parityHits(g)).toEqual([]);
+  });
+
+  // Scaffold emits every subcommand as a cli surface with no edges. Until one
+  // is wired to a command or a read-model the model makes no claim about being
+  // driven headlessly, and reporting every screen-only node would bury it.
+  it('stays silent for a scaffolded, unwired cli', () => {
+    expect(parityHits(unwired())).toEqual([]);
+  });
+
+  it('is switched on by a cli that only reads', () => {
+    const g = unwired();
+    g.addEdge(edge('sync-cli', 'reads', 'status'));
+    expect(hitIds(g)).toContain('command-ui-only app.act');
   });
 
   it('is switched on by an agent tool as much as by a CLI', () => {
@@ -113,7 +135,7 @@ describe('command-ui-only', () => {
     expect(hitIds(g)).not.toContain('command-ui-only app.internal');
   });
 
-  it('is silenced by ui_only with a reason, and only with one', () => {
+  it('is silenced by ui_only, but not by an empty reason', () => {
     const g = appWithCli();
     g.getNode('app.act')!.data = { ui_only: '' };
     expect(hitIds(g)).toContain('command-ui-only app.act');
@@ -147,7 +169,7 @@ describe('read-model-ui-only', () => {
     expect(hitIds(g)).not.toContain('read-model-ui-only app.audit');
   });
 
-  it('is silenced by ui_only with a reason, and only with one', () => {
+  it('is silenced by ui_only, but not by an empty reason', () => {
     const g = appWithCli();
     g.getNode('app.status')!.data = { ui_only: '' };
     expect(hitIds(g)).toContain('read-model-ui-only app.status');
@@ -207,9 +229,9 @@ describe('cli and tool are surfaces that answer their caller', () => {
 });
 
 describe('the preset enables the lane', () => {
-  it('event-modeling names every headless rule', () => {
+  it('event-modeling names every parity rule', () => {
     const preset = loadPreset('event-modeling', new URL('../../../../presets', import.meta.url).pathname);
-    expect(HEADLESS_RULES.sort()).toEqual(['command-ui-only', 'read-model-ui-only']);
-    for (const id of HEADLESS_RULES) expect(preset.rules).toContain(id);
+    expect(PARITY_RULES.sort()).toEqual(['command-ui-only', 'read-model-ui-only']);
+    for (const id of PARITY_RULES) expect(preset.rules).toContain(id);
   });
 });

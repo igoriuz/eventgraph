@@ -84,6 +84,50 @@ describe('CLI subcommands', () => {
   });
 });
 
+describe('what is not a registration', () => {
+  const cli = (body: string) => src('src/cli.ts', `import { Command } from 'commander';\n${body}`);
+
+  it('ignores a commented-out subcommand', () => {
+    expect(ids([cli("// program.command('old');\n/* program.command('older'); */\nprogram.command('live');")])).toEqual([
+      'live-cli',
+    ]);
+  });
+
+  it('ignores a registration that is only text inside a string', () => {
+    expect(ids([cli(`const help = "register with program.command('example')";\nprogram.command('live');`)])).toEqual([
+      'live-cli',
+    ]);
+  });
+
+  it('does not take a commented-out import as importing commander', () => {
+    expect(ids([src('src/bot.ts', `// import { Command } from 'commander';\nbot.command('start');`)])).toEqual([]);
+  });
+
+  it('does not take a mention of the MCP SDK in a comment or a string as importing it', () => {
+    const mention = src(
+      'src/agent.ts',
+      `// ported from '@modelcontextprotocol/sdk'\nconst docs = "see '@modelcontextprotocol/sdk'";\nagent.tool('search', run);`
+    );
+    expect(ids([mention])).toEqual([]);
+  });
+
+  it('reads a subpath require and a dynamic import of commander', () => {
+    expect(ids([src('bin/a.cjs', `const { program } = require('commander/esm');\nprogram.command('one');`)])).toEqual(['one-cli']);
+    expect(ids([src('bin/b.mjs', `const { program } = await import('commander');\nprogram.command('two');`)])).toEqual(['two-cli']);
+  });
+
+  // A registration function typed against commander imports only the type.
+  it('counts a type-only import, since the call on a typed parameter is real', () => {
+    const typed = src('src/cli/users.ts', `import type { Command } from 'commander';\nexport const register = (p: Command) => p.command('invite');`);
+    expect(ids([typed])).toEqual(['invite-cli']);
+  });
+
+  it('reads .mts and .cts files', () => {
+    expect(ids([src('src/cli.mts', `import { Command } from 'commander';\nprogram.command('one');`)])).toEqual(['one-cli']);
+    expect(ids([src('src/cli.cts', `const { program } = require('commander');\nprogram.command('two');`)])).toEqual(['two-cli']);
+  });
+});
+
 describe('agent tools', () => {
   it('finds both MCP SDK registration styles as tool surfaces', () => {
     const { model } = scaffold([TOOLS], { only: ['headless'] });
@@ -113,7 +157,39 @@ describe('ids', () => {
       'src/cli/remote.ts',
       `import { Command } from 'commander';\nremote.command('list');`
     );
-    expect(ids([ORDERS, remote])).toEqual(['place-cli', 'list-cli', 'remote-list-cli']);
+    expect(ids([ORDERS, remote])).toEqual(['place-cli', 'orders-list-cli', 'remote-list-cli']);
+  });
+
+  // Whichever file sorts first used to get the bare id. A file added later
+  // that sorts earlier then took it over, and edges drawn to the old node
+  // pointed at a different subcommand after the next scaffold.
+  it('keeps those ids when a third file with the same subcommand sorts first', () => {
+    const remote = src('src/cli/remote.ts', `import { Command } from 'commander';\nremote.command('list');`);
+    const archive = src('src/cli/archive.ts', `import { Command } from 'commander';\narchive.command('list');`);
+    const before = ids([ORDERS, remote]);
+    const after = ids([archive, ORDERS, remote]);
+    expect(after).toEqual(['archive-list-cli', ...before]);
+  });
+
+  // Nesting is not resolved, so `remote add` and `tag add` are both `add`.
+  // Dropping the second lost a surface without a word.
+  it('keeps same-named subcommands of one file and says it numbered them', () => {
+    const nested = src(
+      'src/cli.ts',
+      `import { Command } from 'commander';\nremote.command('add <url>');\ntag.command('add <name>');`
+    );
+    const { model, notes } = scaffold([nested], { only: ['headless'] });
+    expect(model.nodes.map(n => [n.id, n.label])).toEqual([
+      ['add-cli', 'add <url>'],
+      ['add-cli-2', 'add <name>'],
+    ]);
+    expect(notes.join(' ')).toMatch(/1 name\(s\) registered more than once in one file/);
+  });
+
+  it('turns a colon in a subcommand name into a dash', () => {
+    expect(ids([src('src/cli.ts', `import { Command } from 'commander';\nprogram.command('db:migrate');`)])).toEqual([
+      'db-migrate-cli',
+    ]);
   });
 
   it('produces the same ids on a second run', () => {

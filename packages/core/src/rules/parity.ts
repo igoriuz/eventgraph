@@ -1,6 +1,6 @@
 import type { EventGraph } from '../graph.js';
 import type { GraphNode } from '../schema.js';
-import { defineRule, finding, hasFlag, HEADLESS_KINDS, HUMAN_KINDS, kindOf, sources } from './kit.js';
+import { defineRule, finding, hasFlag, HEADLESS_KINDS, HUMAN_KINDS, kindOf, sources, targets } from './kit.js';
 
 /**
  * Parity between the human interface and the headless one.
@@ -14,13 +14,22 @@ import { defineRule, finding, hasFlag, HEADLESS_KINDS, HUMAN_KINDS, kindOf, sour
  * works for everything it has.
  *
  * Endpoints count as headless access, since anything that speaks HTTP can call
- * them, but they do not switch the lane on. Only a declared `cli` or `tool`
- * surface says the model means to be driven without its UI, so a plain
- * client-server app never starts reporting here.
+ * them, but they do not switch the lane on. Only a `cli` or `tool` surface
+ * that offers or reads something says the model means to be driven without
+ * its UI, so a plain client-server app never starts reporting here.
  */
 
+/**
+ * A `cli` or `tool` surface that is wired to something. Declaring one is not
+ * enough: scaffold emits every subcommand it finds as a bare surface, and a
+ * seed script with two of them is not a claim that the app can be driven
+ * without its UI. The claim starts where a surface offers or reads.
+ */
 function declaresHeadlessSurface(g: EventGraph): boolean {
-  return g.getNodesByType('screen').some(s => kindOf(s) === 'cli' || kindOf(s) === 'tool');
+  return g
+    .getNodesByType('screen')
+    .filter(s => kindOf(s) === 'cli' || kindOf(s) === 'tool')
+    .some(s => targets(g, s, 'offers').length > 0 || targets(g, s, 'reads').length > 0);
 }
 
 /**
@@ -37,7 +46,7 @@ defineRule(
   {
     id: 'command-ui-only',
     severity: 'warn',
-    lane: 'headless',
+    lane: 'parity',
     about:
       'A command a person can issue from a screen but no CLI, tool or endpoint offers. An agent or a test driving the app headlessly cannot reach it, so whatever depends on it is untestable without clicking through the UI. Some commands genuinely belong to the UI — say so with ui_only and a reason.',
   },
@@ -63,7 +72,7 @@ defineRule(
   {
     id: 'read-model-ui-only',
     severity: 'warn',
-    lane: 'headless',
+    lane: 'parity',
     about:
       'A read-model a person can see but no CLI, tool or endpoint reads. An agent can issue commands and then cannot find out what became of them, which turns every headless run into a guess. Set ui_only with a reason where only a person needs it.',
   },

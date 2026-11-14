@@ -104,7 +104,7 @@ server.tool(
   'Find completeness gaps in the graph — what is missing, not just whether the shape is valid. Use limit to get the most pressing gaps to work on next.',
   {
     lane: z
-      .enum(['bootstrap', 'structure', 'ux', 'backend', 'headless', 'platform'])
+      .enum(['bootstrap', 'structure', 'ux', 'backend', 'parity', 'platform'])
       .optional()
       .describe('Restrict to one lane of rules'),
     limit: z.number().optional().describe('Return only the N most pressing gaps'),
