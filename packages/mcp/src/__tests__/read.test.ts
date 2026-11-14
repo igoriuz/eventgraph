@@ -55,7 +55,7 @@ describe('MCP read tools', () => {
   it('eventgraph_query returns matching nodes', async () => {
     const tools = createReadTools(projectDir);
 
-    const result = await tools.eventgraph_query({ expr: 'type:event' });
+    const result = await tools.eventgraph_query.run({ expr: 'type:event' });
     expect(result.nodes).toHaveLength(1);
     expect(result.nodes[0].id).toBe('order-placed');
   });
@@ -63,7 +63,7 @@ describe('MCP read tools', () => {
   it('eventgraph_impact returns impact analysis', async () => {
     const tools = createReadTools(projectDir);
 
-    const result = await tools.eventgraph_impact({ nodeId: 'order-placed' });
+    const result = await tools.eventgraph_impact.run({ nodeId: 'order-placed' });
     expect(result.totalAffected).toBe(1);
     expect(result.risk).toBe('low');
   });
@@ -71,21 +71,21 @@ describe('MCP read tools', () => {
   it('eventgraph_get_node returns a single node', async () => {
     const tools = createReadTools(projectDir);
 
-    const result = await tools.eventgraph_get_node({ nodeId: 'payments.place-order' });
+    const result = await tools.eventgraph_get_node.run({ nodeId: 'payments.place-order' });
     expect(result.node?.label).toBe('Place Order');
   });
 
   it('eventgraph_list_contexts returns all contexts', async () => {
     const tools = createReadTools(projectDir);
 
-    const result = await tools.eventgraph_list_contexts({});
+    const result = await tools.eventgraph_list_contexts.run({});
     expect(result.contexts).toEqual(['payments']);
   });
 
   it('eventgraph_validate returns validation result', async () => {
     const tools = createReadTools(projectDir);
 
-    const result = await tools.eventgraph_validate({});
+    const result = await tools.eventgraph_validate.run({});
     expect(result.valid).toBe(true);
     expect(result.errors).toHaveLength(0);
   });

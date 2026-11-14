@@ -22,7 +22,8 @@ import { blank, IdSet, kebab, type ScaffoldSource } from './sources.js';
  *   - the MCP TypeScript SDK's `server.tool('name', …)` and
  *     `server.registerTool('name', …)`, in a file importing from that SDK. A
  *     module handed a server without importing anything from the SDK is missed,
- *     as are tools listed through a raw `ListTools` request handler.
+ *     as are tools listed through a raw `ListTools` request handler and tools
+ *     registered in a loop over a table, where the name is not a literal.
  *
  * Nesting is not resolved: `remote add` registered as `.command('add')` on a
  * `remote` subcommand comes out as `add`, and a second `add` in the same file

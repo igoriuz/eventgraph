@@ -9,8 +9,8 @@ import { IdSet, type ScaffoldSource } from './sources.js';
 
 export { collectSources, unreadLanguages, type ScaffoldSource, type UnreadLanguage } from './sources.js';
 
-export type Extractor = 'endpoints' | 'headless' | 'screens' | 'aggregates' | 'domain';
-export const EXTRACTORS: Extractor[] = ['endpoints', 'headless', 'screens', 'aggregates', 'domain'];
+export const EXTRACTORS = ['endpoints', 'headless', 'screens', 'aggregates', 'domain'] as const;
+export type Extractor = (typeof EXTRACTORS)[number];
 
 export interface ScaffoldOptions {
   context?: string;
