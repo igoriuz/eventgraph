@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createMetaTools } from '../tools/meta.js';
 import { createReadTools } from '../tools/read.js';
 import { createWriteTools } from '../tools/write.js';
 
@@ -74,6 +75,36 @@ describe('MCP tools on a par with the CLI', () => {
       const result = await createWriteTools(dir).eventgraph_apply({ model: BATCH, dryRun: true });
       expect(result).toMatchObject({ success: true, dryRun: true });
       expect(modelFile()).toBe(before);
+    });
+  });
+
+  describe('eventgraph_init_context', () => {
+    it('creates and registers a context', async () => {
+      expect(await createMetaTools(dir).eventgraph_init_context({ name: 'billing' })).toMatchObject({ success: true });
+      expect(readFileSync(join(dir, 'eventgraph.yaml'), 'utf-8')).toContain('- billing');
+      expect(readFileSync(join(dir, 'contexts', 'billing', 'model.yaml'), 'utf-8')).toContain('context: billing');
+    });
+
+    // It used to write an empty model over whatever was there.
+    it('leaves an existing context alone', async () => {
+      const before = modelFile();
+      const result = await createMetaTools(dir).eventgraph_init_context({ name: 'shop' });
+      expect(result).toMatchObject({ success: false, error: expect.stringMatching(/already exists/) });
+      expect(modelFile()).toBe(before);
+    });
+
+    it('refuses a name that is a path', async () => {
+      const result = await createMetaTools(dir).eventgraph_init_context({ name: '../../escaped' });
+      expect(result.success).toBe(false);
+      expect(existsSync(join(root, 'escaped'))).toBe(false);
+      expect(readFileSync(join(dir, 'eventgraph.yaml'), 'utf-8')).not.toContain('escaped');
+    });
+
+    it('obeys the write mode like every other write', async () => {
+      rmSync(root, { recursive: true, force: true });
+      setup('locked');
+      expect(await createMetaTools(dir).eventgraph_init_context({ name: 'billing' })).toMatchObject({ success: false });
+      expect(existsSync(join(dir, 'contexts', 'billing'))).toBe(false);
     });
   });
 

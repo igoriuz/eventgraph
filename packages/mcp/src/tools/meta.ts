@@ -1,12 +1,12 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { stringify as stringifyYaml } from 'yaml';
-import { loadConfig, loadProject } from 'eventgraph-core';
+import { applyModels, loadConfig, loadPreset, loadProject } from 'eventgraph-core';
+import { presetsDirPath } from './presets.js';
 import { generateViewerHtml } from 'eventgraph-viewer';
 
 export interface MetaToolsApi {
   eventgraph_view(input: Record<string, never>): Promise<{ path: string }>;
-  eventgraph_init_context(input: { name: string }): Promise<{ success: boolean }>;
+  eventgraph_init_context(input: { name: string }): Promise<{ success: boolean; error?: string; pendingDiff?: string }>;
 }
 
 export function createMetaTools(projectDir: string): MetaToolsApi {
@@ -20,23 +20,26 @@ export function createMetaTools(projectDir: string): MetaToolsApi {
       return { path: outputPath };
     },
 
+    /**
+     * A write like any other: it obeys `agent.write`, and it goes through the
+     * same apply as a model does, so the name is checked and an existing
+     * context is never replaced by an empty one.
+     */
     async eventgraph_init_context({ name }) {
-      mkdirSync(join(projectDir, 'contexts', name), { recursive: true });
-      const model = { context: name, nodes: [], edges: [] };
-      writeFileSync(
-        join(projectDir, 'contexts', name, 'model.yaml'),
-        stringifyYaml(model, { lineWidth: 120 }),
-      );
-
-      const currentConfig = loadConfig(projectDir);
-      if (!currentConfig.contexts.includes(name)) {
-        currentConfig.contexts.push(name);
-        writeFileSync(
-          join(projectDir, 'eventgraph.yaml'),
-          stringifyYaml(currentConfig, { lineWidth: 120 }),
-        );
+      const config = loadConfig(projectDir);
+      if (config.agent.write === 'locked') {
+        return { success: false, error: 'Write mode is locked. Agent cannot modify the model.' };
       }
+      if (config.contexts.includes(name)) return { success: false, error: `Context "${name}" already exists.` };
 
+      const outcome = applyModels(
+        projectDir,
+        [{ context: name, nodes: [], edges: [] }],
+        loadPreset(config.preset, presetsDirPath()),
+        { dryRun: config.agent.write !== 'auto' },
+      );
+      if (outcome.status === 'invalid') return { success: false, error: outcome.errors.map(e => e.message).join('; ') };
+      if (outcome.status === 'planned') return { success: false, pendingDiff: `Would create context "${name}".` };
       return { success: true };
     },
   };

@@ -239,4 +239,23 @@ describe('query', () => {
     project();
     expect(run('query "type:actor"', TMP).stdout).toMatch(/customer/);
   });
+
+  // A context name becomes a directory and a dot splits a qualified id, so the
+  // commands that take either refuse anything that is not a plain name.
+  it('init refuses a context name that is a path', () => {
+    mkdirSync(join(TMP, 'fresh', 'sub'), { recursive: true });
+    const result = run('init -y -n t -c ../escaped', join(TMP, 'fresh', 'sub'));
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toMatch(/plain name/);
+    expect(existsSync(join(TMP, 'fresh', 'sub', 'eventgraph'))).toBe(false);
+    expect(existsSync(join(TMP, 'fresh', 'sub', 'escaped'))).toBe(false);
+  });
+
+  it('add refuses a node id that is not a plain name', () => {
+    const dir = project();
+    const result = run('add actor a.b', TMP);
+    expect(result.status).not.toBe(0);
+    expect(result.stdout).toMatch(/plain name/);
+    expect(model(dir, 'shop').nodes.map(n => n.id)).toEqual(['customer']);
+  });
 });

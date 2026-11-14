@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { stringify as stringifyYaml } from 'yaml';
 import inquirer from 'inquirer';
+import { isPlainName } from 'eventgraph-core';
 
 const WRITE_MODES = ['prompt', 'auto', 'locked'] as const;
 type WriteMode = (typeof WRITE_MODES)[number];
@@ -103,6 +104,12 @@ export function registerInitCommand(program: Command): void {
         agent: { write: answers.agentWrite },
         contexts: answers.contexts,
       };
+
+      const unusable = answers.contexts.filter(c => !isPlainName(c));
+      if (unusable.length > 0) {
+        console.error(`Error: a context name must be a plain name (letters, digits, "-" and "_"): ${unusable.join(', ')}`);
+        process.exit(2);
+      }
 
       for (const context of answers.contexts) {
         mkdirSync(join(targetDir, 'contexts', context), { recursive: true });
