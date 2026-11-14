@@ -87,6 +87,7 @@ export {
   ruleCatalog,
   allRules,
   getRule,
+  LANES,
   type CheckOptions,
   type Finding,
   type Lane,
