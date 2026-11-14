@@ -23,7 +23,7 @@ const metaTools = createMetaTools(projectDir);
 
 const server = new McpServer({
   name: 'eventgraph',
-  version: '0.1.0',
+  version: '0.2.0',
 });
 
 server.tool(
@@ -123,6 +123,12 @@ server.tool(
     id: z.string().describe('Node ID (kebab-case)'),
     type: z.string().describe('Node type (command, event, read-model, etc.)'),
     label: z.string().describe('Human-readable label'),
+    data: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        'Semantic flags, e.g. { entry: true } or { detail: true } on a screen, { kind: "endpoint" }, { triggered_by: "<what>" } on a command, { terminal: "<reason>" } on an event',
+      ),
   },
   async (input) => {
     const result = await writeTools.eventgraph_add_node(input);

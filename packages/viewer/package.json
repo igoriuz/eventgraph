@@ -1,6 +1,6 @@
 {
   "name": "eventgraph-viewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Renders an eventgraph model as a self-contained interactive HTML page.",
   "keywords": [
     "event-modeling",

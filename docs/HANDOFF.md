@@ -64,9 +64,6 @@ Separate branch afterwards — **MCP parity**:
 
 - Move the merge logic of `packages/cli/src/commands/apply.ts` into core so MCP
   can use it; add MCP tools for `apply`, `verify`, `scaffold`, `check --next`.
-- `eventgraph_add_node` (`packages/mcp/src/server.ts:119`) has no `data`
-  parameter, so an agent can neither create `kind: cli`/`tool` nodes nor set
-  `ui_only`. The new findings cannot be silenced with a reason over MCP.
 
 ### Igor decides
 
