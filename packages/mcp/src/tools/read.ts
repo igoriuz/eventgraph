@@ -1,5 +1,4 @@
-import { join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   type GraphNode,
   loadProject,
@@ -10,9 +9,21 @@ import {
   checkGraph,
   slice,
   lifecycle,
+  verifyImplementations,
+  verifyRejectionHandling,
+  collectSources,
+  unreadLanguages,
+  scaffold,
+  stringifyContextModel,
+  type ContractReport,
+  type Extractor,
   type Finding,
   type Lane,
+  type ScaffoldReport,
+  type UnreadLanguage,
+  type VerifyReport,
 } from 'eventgraph-core';
+import { presetsDirPath } from './presets.js';
 
 export interface ReadToolsApi {
   eventgraph_query(input: { expr: string }): Promise<{ nodes: GraphNode[] }>;
@@ -35,17 +46,15 @@ export interface ReadToolsApi {
     remaining: number;
     findings: Finding[];
   }>;
-}
-
-/** See the CLI's presetsDir: bundled beside the output once published. */
-function presetsDirPath(): string {
-  const candidates = [
-    join(import.meta.dirname, 'presets'),
-    join(import.meta.dirname, '..', 'presets'),
-    join(import.meta.dirname, '..', '..', 'presets'),
-    join(import.meta.dirname, '..', '..', '..', '..', 'presets'),
-  ];
-  return candidates.find(existsSync) ?? candidates[candidates.length - 1]!;
+  eventgraph_verify(input: { root?: string }): Promise<VerifyReport & { ok: boolean; sourceRoot: string; contract: ContractReport }>;
+  eventgraph_scaffold(input: { root?: string; context?: string; only?: Extractor[] }): Promise<{
+    scanned: number;
+    /** The scaffolded context as YAML, ready for eventgraph_apply; null when nothing was recognised. */
+    model: string | null;
+    notes: string[];
+    counts: ScaffoldReport['counts'] | null;
+    unread: UnreadLanguage[];
+  }>;
 }
 
 /**
@@ -58,6 +67,9 @@ function presetsDirPath(): string {
  */
 export function createReadTools(projectDir: string): ReadToolsApi {
   const open = () => loadProject(projectDir);
+  // Source lives beside the eventgraph directory, so that is where a pointer
+  // or a relative root is resolved from — not from wherever the server runs.
+  const sourceRoot = (root?: string) => resolve(projectDir, '..', root ?? '.');
 
   return {
     async eventgraph_query({ expr }) {
@@ -139,6 +151,40 @@ export function createReadTools(projectDir: string): ReadToolsApi {
         nodes: graph.getAllNodes().length,
         remaining: all.length,
         findings,
+      };
+    },
+
+    /**
+     * The model against the code, which `check` cannot see: pointers that no
+     * longer resolve, and callers that do not know a rejection they can get.
+     */
+    async eventgraph_verify({ root } = {}) {
+      const { graph } = open();
+      const from = sourceRoot(root);
+      const report = verifyImplementations(graph, from);
+      const contract = verifyRejectionHandling(graph, from);
+      return { ok: report.issues.length + contract.issues.length === 0, sourceRoot: from, ...report, contract };
+    },
+
+    /**
+     * A partial model read from source, returned rather than written: a guess
+     * that lands in the project unseen is indistinguishable from a decision.
+     * The agent reviews it and hands it to eventgraph_apply.
+     */
+    async eventgraph_scaffold({ root, context, only } = {}) {
+      const from = sourceRoot(root);
+      const sources = collectSources(from);
+      const unread = unreadLanguages(from);
+      if (sources.length === 0) {
+        return { scanned: 0, model: null, notes: [`no source files scaffold can read under ${from}`], counts: null, unread };
+      }
+      const report = scaffold(sources, { context: context ?? 'core', only });
+      return {
+        scanned: sources.length,
+        model: report.model.nodes.length > 0 ? stringifyContextModel(report.model) : null,
+        notes: report.notes,
+        counts: report.counts,
+        unread,
       };
     },
 

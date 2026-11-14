@@ -101,7 +101,7 @@ server.tool(
 
 server.tool(
   'eventgraph_check',
-  'Find completeness gaps in the graph — what is missing, not just whether the shape is valid. Use limit to get the most pressing gaps to work on next.',
+  'Find completeness gaps in the graph — what is missing, not just whether the shape is valid. Use limit to get the most pressing gaps to work on next (the CLI calls this check --next).',
   {
     lane: z
       .enum(['bootstrap', 'structure', 'ux', 'backend', 'parity', 'platform'])
@@ -157,6 +157,53 @@ server.tool(
   { nodeId: z.string().describe('Qualified node ID to remove') },
   async (input) => {
     const result = await writeTools.eventgraph_remove_node(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  'eventgraph_apply',
+  'Merge a whole context model (or several, separated by ---) into the project in one call. The merged result is validated first; on any error nothing is written. Prefer this over many add_node/add_edge calls.',
+  {
+    model: z
+      .string()
+      .describe(
+        'YAML in the compact form: context: <name>, nodes: { <id>: { type, label?, src?, <flags> } }, edges: { <edge-type>: { <from>: [<to>, ...] } }',
+      ),
+    replace: z.boolean().optional().describe('Replace the named contexts instead of merging into them'),
+    dryRun: z.boolean().optional().describe('Report what would change without writing'),
+  },
+  async (input) => {
+    const result = await writeTools.eventgraph_apply(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  'eventgraph_verify',
+  'Check the model against the code: source pointers that no longer resolve, and callers that do not handle a rejection code a command can answer with.',
+  {
+    root: z.string().optional().describe('Where source pointers resolve from, relative to the directory holding eventgraph/ (default: that directory)'),
+  },
+  async (input) => {
+    const result = await readTools.eventgraph_verify(input);
+    return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  'eventgraph_scaffold',
+  'Extract a partial model from source: surfaces, navigation, aggregates, and declared commands and events. Returns YAML to review and pass to eventgraph_apply; writes nothing. Reads TypeScript, JavaScript, Dart and Prisma only, and names the languages it walked past.',
+  {
+    root: z.string().optional().describe('Directory to scan, relative to the directory holding eventgraph/ (default: that directory)'),
+    context: z.string().optional().describe('Context name for the returned model (default: core)'),
+    only: z
+      .array(z.enum(['endpoints', 'headless', 'screens', 'aggregates', 'domain']))
+      .optional()
+      .describe('Limit the extractors'),
+  },
+  async (input) => {
+    const result = await readTools.eventgraph_scaffold(input);
     return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
   },
 );

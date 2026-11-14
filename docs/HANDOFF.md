@@ -6,10 +6,13 @@ Last updated: 2026-11-12
 
 ### Claude next
 
-**MCP parity** (own branch):
-
-- Move the merge logic of `packages/cli/src/commands/apply.ts` into core so MCP
-  can use it; add MCP tools for `apply`, `verify`, `scaffold`, `check --next`.
+Nothing queued. Released is 0.2.0; `main` is ahead of it by the parity lane
+(surface kinds `cli`/`tool`, lane `parity`, `validate` rejecting unknown
+kinds) and by MCP parity (`eventgraph_apply`, `eventgraph_verify`,
+`eventgraph_scaffold`; the merge logic of `apply` now lives in
+`packages/core/src/apply.ts`). A release needs the versions raised in the four
+`package.json` files, `packages/cli/src/index.ts` and
+`packages/mcp/src/server.ts`, then a tag `v*`.
 
 ### Igor decides
 

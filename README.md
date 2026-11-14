@@ -477,10 +477,14 @@ Anything that can run a stdio command works; there is no environment, token or
 port. The server finds the project by walking up from the directory it is
 started in, so register it per repository.
 
-The server exposes the read side to agents: `eventgraph_query`,
-`eventgraph_impact`, `eventgraph_slice`, `eventgraph_lifecycle`,
-`eventgraph_check`, `eventgraph_validate`, plus writes gated by the `agent.write`
-mode in the project config (`prompt`, `auto` or `locked`).
+The server gives an agent what the CLI gives a person. Reading:
+`eventgraph_query`, `eventgraph_impact`, `eventgraph_slice`,
+`eventgraph_lifecycle`. Asking what is wrong: `eventgraph_check` (with `limit`
+for `check --next`), `eventgraph_validate`, `eventgraph_verify`. Starting from
+code: `eventgraph_scaffold`, which returns a model and writes nothing. Writing:
+`eventgraph_apply` for a whole context, `eventgraph_add_node` and
+`eventgraph_add_edge` for single edits — all gated by the `agent.write` mode in
+the project config (`prompt`, `auto` or `locked`).
 
 ## Development
 

@@ -40,6 +40,23 @@ describe('MCP server over stdio', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
+  it('offers what the CLI offers', async () => {
+    const names = (await client.listTools()).tools.map(t => t.name);
+    for (const tool of ['eventgraph_apply', 'eventgraph_verify', 'eventgraph_scaffold', 'eventgraph_check']) {
+      expect(names).toContain(tool);
+    }
+  });
+
+  it('eventgraph_apply takes a model and its options through the protocol', async () => {
+    const result = await client.callTool({
+      name: 'eventgraph_apply',
+      arguments: { model: 'context: app\nnodes:\n  home: { type: screen, entry: true }\nedges: {}\n', dryRun: true },
+    });
+    const text = (result.content as Array<{ text: string }>)[0]!.text;
+    expect(JSON.parse(text)).toMatchObject({ success: true, dryRun: true, changes: [{ context: 'app', nodesAdded: 1 }] });
+    expect(readFileSync(join(dir, 'eventgraph', 'contexts', 'app', 'model.yaml'), 'utf8')).not.toContain('home');
+  });
+
   it('eventgraph_add_node passes semantic flags through', async () => {
     await client.callTool({
       name: 'eventgraph_add_node',
