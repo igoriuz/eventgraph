@@ -65,18 +65,6 @@ Separate branch afterwards — **MCP parity**:
 - Move the merge logic of `packages/cli/src/commands/apply.ts` into core so MCP
   can use it; add MCP tools for `apply`, `verify`, `scaffold`, `check --next`.
 
-### Needs Igor's accounts
-
-- **0.2.0 is tagged but not on npm.** Tag `v0.2.0` (main `0105964`) is pushed;
-  the release run 43531967279 built and tested green and then failed in
-  "Publish what is new" at the first package, `eventgraph-cli@0.2.0`, with
-  `npm error code ENEEDAUTH`. Nothing was published and no GitHub release was
-  written. The workflow has no token and relies on npm trusted publishing, so
-  the likely cause is that it is not armed for the packages: on npmjs.com,
-  each of `eventgraph-core`, `-viewer`, `-cli`, `-mcp` → Settings → Trusted
-  publishers → GitHub Actions, this repository, workflow `release.yml`. Then
-  `gh run rerun 43531967279`; the tag stays as it is.
-
 ### Igor decides
 
 - Whether to try the parity lane on a real app built (or to be built) around a
