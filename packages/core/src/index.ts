@@ -80,6 +80,7 @@ export {
   type ContractIssue,
   type ContractReport,
 } from './contract.js';
+export { verifyCliOffers, type CliOfferIssue, type CliOfferReport } from './cli-offers.js';
 export {
   checkGraph,
   resolveRules,

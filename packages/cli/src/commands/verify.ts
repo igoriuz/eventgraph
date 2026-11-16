@@ -1,13 +1,13 @@
 import { Command } from 'commander';
 import { resolve } from 'node:path';
-import { sourceRootOf, verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
+import { sourceRootOf, verifyCliOffers, verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 /**
- * Both checks here need the filesystem, which is what separates them from
- * `check`: one asks whether the graph still describes code that exists, the
- * other whether two codebases still agree on a contract only the graph holds
- * both ends of.
+ * The checks here need the filesystem, which is what separates them from
+ * `check`: whether the graph still describes code that exists, whether two
+ * codebases still agree on a contract only the graph holds both ends of, and
+ * whether a CLI subcommand the model claims is really there.
  */
 export function registerVerifyCommand(program: Command): void {
   program
@@ -20,14 +20,15 @@ export function registerVerifyCommand(program: Command): void {
       const sourceRoot = opts.root ? resolve(opts.root) : sourceRootOf(projectDir);
       const report = verifyImplementations(graph, sourceRoot);
       const contract = verifyRejectionHandling(graph, sourceRoot);
+      const cli = verifyCliOffers(graph, sourceRoot);
+      const failed = report.issues.length + contract.issues.length + cli.issues.length > 0;
 
       if (opts.json) {
-        console.log(JSON.stringify({ sourceRoot, ...report, contract }, null, 2));
-        process.exit(report.issues.length + contract.issues.length > 0 ? 1 : 0);
+        console.log(JSON.stringify({ sourceRoot, ...report, contract, cli }, null, 2));
+        process.exit(failed ? 1 : 0);
       }
 
-      const clean =
-        report.issues.length === 0 && report.undeclared.length === 0 && contract.issues.length === 0;
+      const clean = !failed && report.undeclared.length === 0;
 
       if (clean) {
         console.log(`✓ ${report.checked} pointer(s) across ${report.nodesWithPointers} node(s) all resolve`);
@@ -35,6 +36,9 @@ export function registerVerifyCommand(program: Command): void {
           console.log(
             `✓ ${contract.checked} rejection code(s) recognised by the ${contract.callers} caller(s) that can meet them`
           );
+        }
+        if (cli.checked > 0) {
+          console.log(`✓ ${cli.checked} CLI subcommand(s) named in their source`);
         }
         console.log(`  resolved from ${sourceRoot}`);
         return;
@@ -66,6 +70,12 @@ export function registerVerifyCommand(program: Command): void {
         );
       }
 
+      for (const issue of cli.issues) {
+        console.log(`✗ ${issue.surface}`);
+        console.log(`  offers ${issue.command}, but "${issue.name}" appears nowhere in its source`);
+        console.log(`  → name the subcommand with the command id as a literal, or drop the offers edge\n`);
+      }
+
       for (const id of report.undeclared) {
         console.log(`! ${id}`);
         console.log(`  marked implemented but names no source`);
@@ -78,11 +88,18 @@ export function registerVerifyCommand(program: Command): void {
         console.log(`  → point implemented_by at the caller's source, or the contract goes unchecked\n`);
       }
 
+      for (const id of cli.unsearchable) {
+        console.log(`! ${id}`);
+        console.log(`  offers commands, but its pointers matched no readable file`);
+        console.log(`  → point implemented_by at the subcommand's source, or its names go unchecked\n`);
+      }
+
       const parts = [`${report.issues.length} broken pointer(s)`];
       if (contract.issues.length > 0) parts.push(`${contract.issues.length} unhandled rejection(s)`);
+      if (cli.issues.length > 0) parts.push(`${cli.issues.length} unnamed subcommand(s)`);
       parts.push(`${report.undeclared.length} undeclared`, `${report.checked} checked`);
       console.log(`${parts.join(', ')} (from ${sourceRoot})`);
 
-      process.exit(report.issues.length + contract.issues.length > 0 ? 1 : 0);
+      process.exit(failed ? 1 : 0);
     });
 }

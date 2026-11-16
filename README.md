@@ -343,6 +343,16 @@ mentioned only in a comment counts as handled, and one assembled at runtime is
 not found. It catches the ordinary case, and a false pass is cheaper than a
 check nobody runs.
 
+### Subcommands the model claims
+
+The parity lane takes the model's word that a `cli` surface offers a command.
+`verify` checks the claim: the command's id has to appear in the surface's own
+source, so a subcommand states its name as a literal equal to the id — in
+Swift `CommandConfiguration(commandName: "add-expense")`, in commander
+`.command('add-expense')`. A name derived from a type name is not found, and
+that is the point: the literal is what lets an agent and a reader find the
+subcommand from the model.
+
 ## Two codebases, one product
 
 When the same product ships as separate apps, `implemented_by` can be keyed by
