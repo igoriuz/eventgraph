@@ -1,6 +1,6 @@
 # Handoff
 
-Last updated: 2026-11-12
+Last updated: 2026-11-16
 
 ## Open points
 
@@ -26,6 +26,12 @@ What 0.3.0 changed for someone on 0.2.0:
   parity lane.
 
 ### Igor decides
+
+- **Headless-core concept** (`docs/core-concept.md`, 2026-11-16, reviewed by
+  an advisor): seven numbered decisions — house rules, CLI as surface,
+  state-stored storage, ports over effects-as-data, coupling A/B/C, trial
+  project and stack row, eventgraph changes for release 1. Release 1 starts
+  once they are answered.
 
 - Whether to try the parity lane on a real app built (or to be built) around a
   headless core — the fastest way to see whether the rules hold up.
