@@ -3,6 +3,7 @@ import type { GraphNode } from './schema.js';
 import { qualifiedId } from './schema.js';
 import { pointersOf } from './verify.js';
 import { foundIn, sourceFilesOf } from './source-search.js';
+import { HUMAN_KINDS, kindOf } from './rules/kit.js';
 
 /**
  * Checks that whoever issues a command knows the ways it can refuse.
@@ -15,9 +16,11 @@ import { foundIn, sourceFilesOf } from './source-search.js';
  * on the other — so this is the check that becomes possible once the graph
  * exists, and stays impossible without it.
  *
- * A caller is an actor that issues the command, or a surface that offers it.
- * In an app built around a core, the code meeting a refusal is the screen, CLI
- * subcommand or tool offering the command; a person issuing it has no source.
+ * A caller is an actor that issues the command, or a surface made for a person
+ * that offers it. In an app built around a core, the code meeting a refusal is
+ * the screen offering the command; a person issuing it has no source. A CLI
+ * subcommand, an agent tool or an endpoint passes the code on to whoever called
+ * it, so the far end is that caller, not the surface.
  *
  * Matching is a substring search, deliberately. Codes are shouty constants and
  * a parser per language is not worth owning; the failure being caught is a code
@@ -72,7 +75,8 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
   let checked = 0;
   let callers = 0;
 
-  for (const caller of [...graph.getNodesByType('actor'), ...graph.getNodesByType('screen')]) {
+  const humanSurfaces = graph.getNodesByType('screen').filter(s => HUMAN_KINDS.includes(kindOf(s)));
+  for (const caller of [...graph.getNodesByType('actor'), ...humanSurfaces]) {
     const callerId = qualifiedId(caller.context, caller.id);
     if (pointersOf(caller).length === 0) continue;
 

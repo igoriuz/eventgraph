@@ -198,9 +198,18 @@ describe('rejection contracts', () => {
     });
 
     it('passes a surface that names the code', () => {
-      write('cli/report.ts', "if (code === 'TOO_FAST') process.exit(2);");
+      write('ui/ReportScreen.swift', 'case "TOO_FAST": showSlowDown()');
 
-      expect(verifyRejectionHandling(offered(['cli/report.ts'], 'cli'), root).issues).toEqual([]);
+      expect(verifyRejectionHandling(offered(['ui/ReportScreen.swift']), root).issues).toEqual([]);
+    });
+
+    it('does not hold a headless surface, which passes the code on', () => {
+      // A CLI prints whatever code it gets; naming each one would be noise.
+      write('cli/report.ts', 'console.log(JSON.stringify({ rejected: code }))');
+
+      for (const kind of ['cli', 'tool', 'endpoint']) {
+        expect(verifyRejectionHandling(offered(['cli/report.ts'], kind), root).callers).toBe(0);
+      }
     });
 
     it('says nothing about a surface with no source pointer', () => {
