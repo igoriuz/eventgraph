@@ -31,14 +31,17 @@ export function registerVerifyCommand(program: Command): void {
         console.log(JSON.stringify({ sourceRoot, ...report }, null, 2));
       } else if (report.ok && report.undeclared.length === 0) {
         printClean(report, sourceRoot);
+        printUnsearchable(report);
         return;
       } else {
         printPointers(report);
         printContract(report.contract);
         printCliOffers(report.cli);
+        printUnsearchable(report);
         printSummary(report, sourceRoot);
       }
-      process.exit(report.ok ? 0 : 1);
+      // exitCode, not exit(): exiting at once cuts output still on its way through a pipe.
+      process.exitCode = report.ok ? 0 : 1;
     });
 }
 
@@ -86,11 +89,6 @@ function printContract(contract: ContractReport): void {
     }
     console.log(`  → handle the code, or drop it from the command's rejects if the service no longer answers with it\n`);
   }
-  for (const id of contract.unsearchable) {
-    console.log(`! ${id}`);
-    console.log(`  issues or offers commands that reject, but its pointers matched no readable file`);
-    console.log(`  → point implemented_by at the caller's source, or the contract goes unchecked\n`);
-  }
 }
 
 function printCliOffers(cli: CliOfferReport): void {
@@ -99,7 +97,16 @@ function printCliOffers(cli: CliOfferReport): void {
     console.log(`  offers ${issue.command}, but "${issue.name}" appears nowhere in its source`);
     console.log(`  → name the subcommand with the command id as a literal, or drop the offers edge\n`);
   }
-  for (const id of cli.unsearchable) {
+}
+
+/** Source that could not be searched is a warning in every case, clean or not: the check did not happen. */
+function printUnsearchable(report: FullVerifyReport): void {
+  for (const id of report.contract.unsearchable) {
+    console.log(`! ${id}`);
+    console.log(`  issues or offers commands that reject, but its pointers matched no readable file`);
+    console.log(`  → point implemented_by at the caller's source, or the contract goes unchecked\n`);
+  }
+  for (const id of report.cli.unsearchable) {
     console.log(`! ${id}`);
     console.log(`  offers commands, but its pointers matched no readable file`);
     console.log(`  → point implemented_by at the subcommand's source, or its names go unchecked\n`);

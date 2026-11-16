@@ -57,7 +57,8 @@ export function registerCheckCommand(program: Command): void {
         print(findings, total);
       }
 
-      process.exit(findings.some(f => f.severity === 'error') ? 1 : 0);
+      // exitCode, not exit(): exiting at once cuts output still on its way through a pipe.
+      process.exitCode = findings.some(f => f.severity === 'error') ? 1 : 0;
     });
 
   program

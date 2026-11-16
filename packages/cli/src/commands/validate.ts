@@ -21,6 +21,6 @@ export function registerValidateCommand(program: Command): void {
       for (const err of errors) {
         console.error(`  ✗ [${err.type}] ${err.message}`);
       }
-      process.exit(1);
+      process.exitCode = 1;
     });
 }

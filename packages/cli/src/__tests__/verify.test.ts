@@ -82,6 +82,30 @@ describe('verify', () => {
     expect(stdout).toContain('! app.refund\n  marked implemented but names no source');
   });
 
+  it('still warns about source it could not search when everything else is clean', () => {
+    project();
+    write('src/pay.ts', '');
+    write('ui/PayScreen.swift', 'CARD_DECLINED');
+    write('cli/pay.ts', "'pay'");
+    // Point the CLI surface at a directory holding no source at all.
+    write(
+      'eventgraph/contexts/app/model.yaml',
+      `context: app
+nodes:
+  pay:        { type: command, rejects: [CARD_DECLINED], src: src/pay.ts }
+  pay-screen: { type: screen, src: ui/PayScreen.swift }
+  pay-cli:    { type: screen, kind: cli, src: cli/docs }
+edges:
+  offers: { pay-screen: [pay], pay-cli: [pay] }
+`
+    );
+    write('cli/docs/README.md', 'notes');
+
+    const { stdout, status } = verify();
+    expect(status).toBe(0);
+    expect(stdout).toContain('! app.pay-cli\n  offers commands, but its pointers matched no readable file');
+  });
+
   it('says ok in JSON, and fails the exit status on any issue', () => {
     project();
     write('src/pay.ts', '');
