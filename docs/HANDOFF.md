@@ -1,17 +1,20 @@
 # Handoff
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 ## Open points
 
 ### Claude next
 
-- **Release 2 of the core concept** (`docs/core-concept.md`): build the Swift
-  trial model-first with the `core-first` skill and keep a friction log (where
-  model and code disagreed, what `verify` missed, which boilerplate repeated per
-  flow). Starts once Igor names the project.
+- **Release 2 of the core concept: two trials**, each run in its own project
+  with the handoff and start prompt in `docs/trials/` — `formox.md` (Swift,
+  the whole app) and `teeveebuddy.md` (Flutter, favourites only). Each ends
+  with a friction-log summary here; together they decide release 3 (contract
+  generation). Known friction already: the parity lane switches on graph-wide,
+  so a narrow trial in a large model gets every other command as a finding
+  (226 in teeveebuddy).
 
-Released is 0.4.0 (tag `v0.4.0`), which is `main`. A release needs the
+Released is 0.4.1 (tag `v0.4.1`), which is `main`. A release needs the
 versions raised in the four `package.json` files, `packages/cli/src/index.ts`
 and `packages/mcp/src/server.ts`, then a tag `v*`; npm trusted publishing is
 set up for all four packages.
@@ -33,17 +36,14 @@ What 0.4.0 changed for someone on 0.3.0:
   `contract.callers`, `contract.issues[].actor` is `caller`; new `cli` block
   `{checked, issues[{surface, command, name}], unsearchable}`.
 
-Unreleased on `main` since 0.4.0: `verifyAll` in core decides what fails
-`verify` for CLI and MCP alike, and the CLI's `verify --json` now carries `ok`
-as the MCP tool already did; the CLI's `verify` output is one printer per
-report (CCN 21 → 6).
+What 0.4.1 changed: `verifyAll` in core decides what fails `verify` for CLI
+and MCP alike, and `verify --json` carries `ok`; `verify` warns about source it
+could not search also when everything else is clean; `impact --depth` refuses
+anything but a positive whole number; `check`, `verify`, `validate` and
+`apply` no longer cut their output at 64 KiB when it goes through a pipe
+(they exited before the pipe drained).
 
 ### Igor decides
-
-- **Which project is the Swift trial** (core concept, decision 6: Apple only,
-  device authority). Release 1 is done: the global skill `core-first`
-  (`~/.claudes/skills/core-first`, with a compiled Swift example under
-  `examples/swift-trips`) and eventgraph 0.4.0.
 
 - **jetphrase: 13 `command-buried` warnings** since the rule was enabled in
   the preset on 2026-11-14. Most come from the model: the only `entry` screen
@@ -56,16 +56,11 @@ report (CCN 21 → 6).
   2026-11-14; counts offers on reachable screens and on endpoints, not on
   notifications or widgets): pkmn-soullink-tracker 4 (`log-failed-encounter`,
   `delete-encounter`, `mark-failed`, `update-nickname` — issued by the
-  trainer, offered nowhere), teeveebuddy 1 (`import-playlist`, offered only on
-  the unreachable `import` screen, so it clears with the existing
-  `screen-unreachable` finding).
+  trainer, offered nowhere). teeveebuddy no longer shows one on 0.4.1
+  (2026-11-17); its open findings are in `docs/trials/teeveebuddy.md`.
 
 ### Later on purpose
 
-- From the logic review of 2026-11-16, filed: when everything else is clean,
-  `verify` prints only the success lines and never the `unsearchable` callers
-  or CLI surfaces; an invalid `impact --depth` (NaN) now walks unbounded where
-  0.3.0 returned nothing.
 
 - Inferring `issues`/`sees` when exactly one non-headless actor exists
   (Formox trial: 22 + 19 edges of boilerplate). Not built: it saves typing
