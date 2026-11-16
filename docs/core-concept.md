@@ -1,6 +1,6 @@
 # Concept: a headless core for future apps, planned with eventgraph
 
-Status: decided 2026-11-16; release 1 done the same day (skill `core-first`, eventgraph 0.4.0). Release 2 waits for the trial project. Reviewed by an independent advisor the
+Status: decided 2026-11-16; release 1 done the same day (skill `core-first`, eventgraph 0.4.0). Release 2 runs as two trials, `docs/trials/`. Reviewed by an independent advisor the
 same day; its findings are worked in (see the end).
 
 ## Goal
@@ -290,6 +290,11 @@ given and can be revisited.
 - **5 — Coupling:** A now, B after the trial, C not.
 - **6 — Trial:** the Swift trial from the handoff, Apple only, device authority.
   Release 1 writes its worked example for Swift.
+- **6, revised 2026-11-17 (Igor):** the trials are two existing apps instead of
+  a new one — Formox (Swift, Apple only, device authority) and Boxseat /
+  teeveebuddy (Flutter, all platforms, narrow: favourites only). Handoffs:
+  `docs/trials/formox.md`, `docs/trials/teeveebuddy.md`. The skill gained a
+  section for moving an existing app.
 - **7 — eventgraph changes 1–4** are part of release 1.
 
 ### Assumptions (decided without asking)
