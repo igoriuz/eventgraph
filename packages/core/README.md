@@ -10,13 +10,17 @@ import { EventGraph, parseContextModel, checkGraph, QueryEngine } from 'eventgra
 
 What lives here:
 
-- `EventGraph` — the in-memory graph, plus `QueryEngine` and `analyzeImpact`
+- `EventGraph` — the in-memory graph, plus `QueryEngine`
 - `validateGraph` — shape: are node and edge types legal for the preset?
 - `checkGraph` — completeness, in six lanes (bootstrap, structure, ux, backend, parity, platform)
 - `scaffold` — extracts a partial model from real source: React Router, SpacetimeDB, Dart,
   commander subcommands, MCP tools
-- `verifyImplementations` / `verifyRejectionHandling` — do source pointers still
-  resolve, and do callers in one codebase know the rejections declared in another?
+- `verifyImplementations` / `verifyRejectionHandling` / `verifyCliOffers` — do
+  source pointers still resolve, do callers (actors and the screens offering a
+  command) know its rejection codes, and does every CLI subcommand the model
+  claims exist?
+- `analyzeImpact` follows `reads` and `calls` backwards, so it answers "who
+  depends on this?" as well as "what does this set off?"
 - the model file reader and writer, in the compact on-disk form
 
 Full documentation: <https://github.com/igoriuz/eventgraph#readme>

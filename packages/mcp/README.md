@@ -22,7 +22,9 @@ Asking what is wrong: `eventgraph_validate` for shape, `eventgraph_check` for
 completeness — the one an agent should loop on, since it answers "what is
 missing" rather than "is this legal"; `limit` gives the most pressing gaps, as
 `check --next` does. `eventgraph_verify` holds the model against the code:
-pointers that no longer resolve, rejection codes a caller does not handle.
+pointers that no longer resolve, rejection codes a caller does not handle, CLI
+subcommands the model claims but the source never names. `eventgraph_impact`
+lists what a change sets off and who reads or calls what it changes.
 
 Writing: `eventgraph_apply` takes a whole context as YAML and validates the
 merged result before anything is written — the way to describe a model.

@@ -5,12 +5,81 @@
   </a>
 </p>
 
-Model an application as a queryable graph instead of a diagram nobody maintains.
+Model an application as a queryable graph instead of a diagram nobody
+maintains — and let it tell you what is missing.
+
+You describe the flows of an app: who issues which command, which events it
+produces, which read-models those update, which screens show them, which policy
+reacts, which outside service gets called. eventgraph checks that description
+for the gaps a review does not see, because every file looks fine on its own:
+
+```yaml
+nodes:
+  customer:       { type: actor }
+  order:          { type: aggregate, immortal: true }
+  place-order:    { type: command }
+  order-placed:   { type: event }
+  order-summary:  { type: read-model, consistency: immediate }
+  checkout:       { type: screen, entry: true }
+  reserve-stock:  { type: policy, idempotent: true }
+  reserve:        { type: command }
+  stock-reserved: { type: event, terminal: shown in the warehouse tool }
+  warehouse-api:  { type: service }
+edges:
+  issues:      { customer: [place-order] }
+  sees:        { customer: [checkout] }
+  offers:      { checkout: [place-order] }
+  produces:    { place-order: [order-placed], reserve: [stock-reserved] }
+  acts-on:     { place-order: [order], reserve: [order] }
+  belongs-to:  { order-placed: [order], stock-reserved: [order] }
+  projects-to: { order-placed: [order-summary] }
+  triggers:    { order-placed: [reserve-stock] }
+  invokes:     { reserve-stock: [reserve] }
+  calls:       { reserve: [warehouse-api] }
+```
+
+```
+$ eventgraph check
+✗ shop.order-summary
+  nothing reads this read-model  [read-model-unused]
+  → Add a reads edge from a screen or policy, or delete it.
+
+! shop.reserve
+  calls a service but models no way for the call to fail  [service-call-unhandled]
+  → Produce an event with data.failure for a failed call, list the codes in data.rejects, or point a decision at it with affects to accept the loss.
+
+✗ shop.place-order
+  the issuing actor cannot observe this command’s outcome  [command-no-feedback]
+  → Project one of its events into a read-model shown on a surface this actor reaches, or mark the events terminal.
+
+2 error(s), 1 warning(s) across 10 nodes
+```
+
+The checkout offers the button and the summary gets computed, but no screen the
+customer sees shows it — so they never learn whether the order went through.
+And when the warehouse is down, nothing says what happens to the reservation.
+
+## What it is for
+
+- **Find gaps before they are code.** `check` runs rules that each ask which
+  relationship is missing: an event nothing consumes, a command whose
+  outcome nobody sees, a screen no path reaches, a policy that is not
+  idempotent. `check --next 3` hands out the most pressing ones.
+- **See what a change reaches.** `impact <node>` lists what a change sets off
+  and who reads or calls what it changes — every screen sharing a read-model,
+  every flow that depends on an outside API. `slice <event>` shows one flow.
+- **Keep model and code together.** `src` points a node at its code; `verify`
+  checks the pointers resolve, every screen handles each rejection code of the
+  commands it offers, and every CLI subcommand the model claims exists.
+  `scaffold` drafts a model from existing code.
+- **Plan an app around a headless core.** Commands in, read-models out; UI, CLI
+  and agent tools as equal surfaces over it. The parity lane reports anything
+  only the UI can reach.
 
 Built for agents as much as for people. The model is a file an agent can query
 and write, and `check` asks *which relationship is missing* rather than *does
 this look right* — a question with an answer, so the loop needs no taste and no
-screenshot.
+screenshot: `check --next` → fill one gap → `check` → repeat.
 
 ## Install
 
@@ -19,7 +88,7 @@ npx eventgraph-cli init           # scaffold a project, nothing to install
 npm install -g eventgraph-cli     # or keep the CLI around
 
 eventgraph check --next 3         # the gaps worth closing first
-eventgraph slice <event>          # the flow around one event
+eventgraph impact <node>          # what a change reaches
 ```
 
 ## Give it to your agent
@@ -34,15 +103,36 @@ from wherever it starts, so register it per repository. Every other client takes
 the same stdio command; [MCP](#mcp) covers Codex, Cursor, Zed and the tools it
 exposes.
 
-The premise: event modeling is right about the *shape* of a flow — actor →
-command → event → read-model → screen — and wrong about the *storage*. A
-swimlane board is a view, not a data structure, which is why it fragments once
-cross-cutting concerns show up. Here the graph is the storage and the board is
-one projection of it, rebuilt on demand around whatever you ask about.
+## Vocabulary
 
-Most of the value is not the graph itself. It is `check`: an agent or a human
-writing the model gets told which gaps are structurally impossible to leave
-open, so the loop becomes `check --next` → fill one gap → `check` → repeat.
+| Node | Is |
+| --- | --- |
+| `actor` | who acts: a person, or with `headless` a sensor, scheduler or partner system |
+| `command` | an intent to change something; may be refused (`rejects`) |
+| `event` | what happened; `failure` when it records a refusal |
+| `aggregate` | the state a command changes, and its lifecycle |
+| `invariant` | a rule a command must uphold |
+| `read-model` | what can be shown or queried, built from events |
+| `policy` | reacts to an event by issuing a command — how one flow sets off another |
+| `screen` | the outside edge: a screen, notification, widget, endpoint, consumer, job, CLI subcommand or agent tool (`kind`) |
+| `service` | a system the code calls out to: an API, a payment provider, the OS calendar |
+| `decision`, `question` | a choice made on purpose, a question still open |
+
+Edges: actor `issues` command, command `produces` event, event
+`projects-to` read-model, event `triggers` policy, policy `invokes` command,
+screen or policy `reads` read-model, screen `offers` command, screen
+`navigates-to` screen, event `belongs-to` aggregate, command `acts-on`
+aggregate, command `enforces` invariant, invariant `guards` aggregate, actor
+`sees` screen, command `calls` service, decision `affects` and question
+`blocks` anything. The preset rejects any other combination.
+
+## Why a graph
+
+Event modeling is right about the *shape* of a flow — actor → command → event →
+read-model → screen — and wrong about the *storage*. A swimlane board is a
+view, not a data structure, which is why it fragments once cross-cutting
+concerns show up. Here the graph is the storage and the board is one projection
+of it, rebuilt on demand around whatever you ask about.
 
 There is a landing page at <https://igoriuz.github.io/eventgraph> with a live
 viewer and the whole rule catalogue. It is built from `site/`, and its findings
@@ -92,10 +182,10 @@ eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
 eventgraph check --next 3           the most pressing gaps, in priority order
-eventgraph verify                   do pointers resolve, do callers know the rejections?
+eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist
 eventgraph slice <event>            the swimlane around one event
 eventgraph lifecycle <aggregate>    its events, the closing one last
-eventgraph impact <node>            blast radius of a change
+eventgraph impact <node>            what a change sets off, and who depends on it
 eventgraph view                     HTML viewer
 eventgraph rules                    every rule, and why it exists
 ```
