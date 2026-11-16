@@ -11,9 +11,13 @@ import { foundIn, sourceFilesOf } from './source-search.js';
  * throws it, the caller has to recognise it. Nothing inside either repository
  * can see both, so the service adds a code, every test still passes, and the
  * caller silently treats it as unknown. The model is the only place that holds
- * both ends — the command's `rejects` on one side, the actor's `implemented_by`
+ * both ends — the command's `rejects` on one side, the caller's `implemented_by`
  * on the other — so this is the check that becomes possible once the graph
  * exists, and stays impossible without it.
+ *
+ * A caller is an actor that issues the command, or a surface that offers it.
+ * In an app built around a core, the code meeting a refusal is the screen, CLI
+ * subcommand or tool offering the command; a person issuing it has no source.
  *
  * Matching is a substring search, deliberately. Codes are shouty constants and
  * a parser per language is not worth owning; the failure being caught is a code
@@ -22,20 +26,20 @@ import { foundIn, sourceFilesOf } from './source-search.js';
  */
 
 export interface ContractIssue {
-  /** Qualified id of the actor expected to recognise the code. */
-  actor: string;
+  /** Qualified id of the actor or surface expected to recognise the code. */
+  caller: string;
   /** Qualified id of the command that can answer with it. */
   command: string;
   code: string;
 }
 
 export interface ContractReport {
-  /** Actor/code pairs examined. */
+  /** Caller/code pairs examined. */
   checked: number;
-  /** Actors carrying both an implemented_by and a command that rejects. */
-  actors: number;
+  /** Callers carrying both an implemented_by and a command that rejects. */
+  callers: number;
   issues: ContractIssue[];
-  /** Actors whose pointers matched no readable file, so nothing was searched. */
+  /** Callers whose pointers matched no readable file, so nothing was searched. */
   unsearchable: string[];
 }
 
@@ -47,15 +51,17 @@ function rejectsOf(node: GraphNode): string[] {
 }
 
 /**
- * Which commands an actor issues, directly or through a policy it sets off.
+ * The commands a caller can meet a refusal from: those an actor issues, or
+ * those a surface offers.
  *
- * Only the direct edge is followed. A policy runs on the server, so its
+ * Only the direct edge is followed. A policy runs inside the core, so its
  * rejections are not the caller's to recognise.
  */
-function commandsIssuedBy(graph: EventGraph, actor: GraphNode): GraphNode[] {
+function commandsCalledBy(graph: EventGraph, caller: GraphNode): GraphNode[] {
+  const edgeType = caller.type === 'actor' ? 'issues' : 'offers';
   return graph
-    .getOutgoingEdges(qualifiedId(actor.context, actor.id))
-    .filter(e => e.type === 'issues')
+    .getOutgoingEdges(qualifiedId(caller.context, caller.id))
+    .filter(e => e.type === edgeType)
     .map(e => graph.getNode(e.to))
     .filter((n): n is GraphNode => n !== undefined && n.type === 'command');
 }
@@ -64,27 +70,26 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
   const issues: ContractIssue[] = [];
   const unsearchable: string[] = [];
   let checked = 0;
-  let actors = 0;
+  let callers = 0;
 
-  for (const actor of graph.getNodesByType('actor')) {
-    const actorId = qualifiedId(actor.context, actor.id);
-    const pointers = pointersOf(actor);
-    if (pointers.length === 0) continue;
+  for (const caller of [...graph.getNodesByType('actor'), ...graph.getNodesByType('screen')]) {
+    const callerId = qualifiedId(caller.context, caller.id);
+    if (pointersOf(caller).length === 0) continue;
 
-    // Which codes this actor could be answered with, and by what.
+    // Which codes this caller could be answered with, and by what.
     const expected = new Map<string, string>();
-    for (const command of commandsIssuedBy(graph, actor)) {
+    for (const command of commandsCalledBy(graph, caller)) {
       const commandId = qualifiedId(command.context, command.id);
       for (const code of rejectsOf(command)) {
         if (!expected.has(code)) expected.set(code, commandId);
       }
     }
     if (expected.size === 0) continue;
-    actors++;
+    callers++;
 
-    const files = sourceFilesOf(actor, sourceRoot);
+    const files = sourceFilesOf(caller, sourceRoot);
     if (files.length === 0) {
-      unsearchable.push(actorId);
+      unsearchable.push(callerId);
       continue;
     }
 
@@ -92,9 +97,9 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
 
     for (const [code, command] of expected) {
       checked++;
-      if (!seen.has(code)) issues.push({ actor: actorId, command, code });
+      if (!seen.has(code)) issues.push({ caller: callerId, command, code });
     }
   }
 
-  return { checked, actors, issues, unsearchable };
+  return { checked, callers, issues, unsearchable };
 }

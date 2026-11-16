@@ -33,7 +33,7 @@ export function registerVerifyCommand(program: Command): void {
         console.log(`✓ ${report.checked} pointer(s) across ${report.nodesWithPointers} node(s) all resolve`);
         if (contract.checked > 0) {
           console.log(
-            `✓ ${contract.checked} rejection code(s) recognised by the ${contract.actors} actor(s) that can meet them`
+            `✓ ${contract.checked} rejection code(s) recognised by the ${contract.callers} caller(s) that can meet them`
           );
         }
         console.log(`  resolved from ${sourceRoot}`);
@@ -47,19 +47,19 @@ export function registerVerifyCommand(program: Command): void {
         console.log(`  → file no longer exists; update the pointer or the code moved without the graph\n`);
       }
 
-      // Grouped by actor: one caller falling behind usually misses several
+      // Grouped by caller: one caller falling behind usually misses several
       // codes at once, and reading them together is what shows the pattern.
-      const byActor = new Map<string, typeof contract.issues>();
+      const byCaller = new Map<string, typeof contract.issues>();
       for (const issue of contract.issues) {
-        const list = byActor.get(issue.actor) ?? [];
+        const list = byCaller.get(issue.caller) ?? [];
         list.push(issue);
-        byActor.set(issue.actor, list);
+        byCaller.set(issue.caller, list);
       }
 
-      for (const [actor, missing] of byActor) {
-        console.log(`✗ ${actor}`);
+      for (const [caller, missing] of byCaller) {
+        console.log(`✗ ${caller}`);
         for (const issue of missing) {
-          console.log(`  ${issue.code} — from ${issue.command}, appears nowhere in this actor's source`);
+          console.log(`  ${issue.code} — from ${issue.command}, appears nowhere in this caller's source`);
         }
         console.log(
           `  → handle the code, or drop it from the command's rejects if the service no longer answers with it\n`
@@ -74,7 +74,7 @@ export function registerVerifyCommand(program: Command): void {
 
       for (const id of contract.unsearchable) {
         console.log(`! ${id}`);
-        console.log(`  issues commands that reject, but its pointers matched no readable file`);
+        console.log(`  issues or offers commands that reject, but its pointers matched no readable file`);
         console.log(`  → point implemented_by at the caller's source, or the contract goes unchecked\n`);
       }
 

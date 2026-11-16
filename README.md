@@ -325,7 +325,12 @@ report-party:  { type: command, rejects: [INVALID_PARTY_DATA, RATE_LIMITED] }
 ```
 
 With an `issues` edge between them, `verify` searches the actor's source for
-each code it can be answered with. A code that appears nowhere is reported. The
+each code it can be answered with. A code that appears nowhere is reported.
+
+A surface is a caller too. In an app built around a core, the person pressing
+the button has no source; the screen, CLI subcommand or tool that `offers` the
+command is the code that meets the refusal, so its `implemented_by` is
+searched the same way. The
 failure this catches is mundane and near-invisible: a service gains a rejection,
 every test on both sides still passes, and the caller quietly treats the new
 code as unknown — dropping the message, or retrying something that will never
