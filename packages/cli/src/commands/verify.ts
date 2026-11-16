@@ -40,7 +40,8 @@ export function registerVerifyCommand(program: Command): void {
         printUnsearchable(report);
         printSummary(report, sourceRoot);
       }
-      process.exit(report.ok ? 0 : 1);
+      // exitCode, not exit(): exiting at once cuts output still on its way through a pipe.
+      process.exitCode = report.ok ? 0 : 1;
     });
 }
 

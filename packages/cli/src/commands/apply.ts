@@ -87,7 +87,8 @@ export function registerApplyCommand(program: Command): void {
       if (errors.length > 0) {
         console.error(`Refusing to apply — ${errors.length} validation error(s):\n`);
         for (const e of errors) console.error(`  ✗ [${e.type}] ${e.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+        return;
       }
 
       if (opts.json) {
