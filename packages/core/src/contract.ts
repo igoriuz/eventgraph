@@ -1,9 +1,8 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
 import type { EventGraph } from './graph.js';
 import type { GraphNode } from './schema.js';
 import { qualifiedId } from './schema.js';
-import { pointerPath, pointersOf } from './verify.js';
+import { pointersOf } from './verify.js';
+import { foundIn, sourceFilesOf } from './source-search.js';
 
 /**
  * Checks that whoever issues a command knows the ways it can refuse.
@@ -22,28 +21,6 @@ import { pointerPath, pointersOf } from './verify.js';
  * code found only in a comment counts as handled, and that is the honest limit.
  */
 
-/** Files worth searching for a constant. Broad, because callers are polyglot. */
-const SOURCE_EXT =
-  /\.(cs|lua|tsx?|jsx?|mjs|cjs|py|go|rs|java|kt|kts|swift|rb|php|dart|scala|ex|exs|c|cc|cpp|h|hpp|m|mm|sh|sql|yaml|yml|json|toml)$/i;
-
-const SKIP_DIRS = new Set([
-  'node_modules',
-  '.git',
-  'dist',
-  'build',
-  'out',
-  'bin',
-  'obj',
-  'target',
-  'coverage',
-  'vendor',
-  '.next',
-  '.expo',
-]);
-
-/** Anything larger is a bundle or a fixture, not code someone wrote. */
-const MAX_BYTES = 2_000_000;
-
 export interface ContractIssue {
   /** Qualified id of the actor expected to recognise the code. */
   actor: string;
@@ -60,42 +37,6 @@ export interface ContractReport {
   issues: ContractIssue[];
   /** Actors whose pointers matched no readable file, so nothing was searched. */
   unsearchable: string[];
-}
-
-/** Every readable source file under a pointer, which may be a file or a tree. */
-function filesUnder(root: string, into: string[]): void {
-  let stats;
-  try {
-    stats = statSync(root);
-  } catch {
-    return;
-  }
-
-  if (stats.isFile()) {
-    if (stats.size <= MAX_BYTES) into.push(root);
-    return;
-  }
-  if (!stats.isDirectory()) return;
-
-  let entries: string[];
-  try {
-    entries = readdirSync(root);
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    if (entry.startsWith('.')) continue;
-    if (SKIP_DIRS.has(entry)) continue;
-    const full = join(root, entry);
-    let entryStats;
-    try {
-      entryStats = statSync(full);
-    } catch {
-      continue;
-    }
-    if (entryStats.isDirectory()) filesUnder(full, into);
-    else if (SOURCE_EXT.test(entry) && entryStats.size <= MAX_BYTES) into.push(full);
-  }
 }
 
 /** The rejection codes declared on a command, if any. */
@@ -141,32 +82,13 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
     if (expected.size === 0) continue;
     actors++;
 
-    const files: string[] = [];
-    for (const { pointer } of pointers) {
-      const path = pointerPath(pointer);
-      if (path.length === 0) continue;
-      filesUnder(isAbsolute(path) ? path : join(sourceRoot, path), files);
-    }
-
+    const files = sourceFilesOf(actor, sourceRoot);
     if (files.length === 0) {
       unsearchable.push(actorId);
       continue;
     }
 
-    // One pass over the actor's code, rather than one per code.
-    const seen = new Set<string>();
-    for (const file of files) {
-      let content: string;
-      try {
-        content = readFileSync(file, 'utf-8');
-      } catch {
-        continue;
-      }
-      for (const code of expected.keys()) {
-        if (!seen.has(code) && content.includes(code)) seen.add(code);
-      }
-      if (seen.size === expected.size) break;
-    }
+    const seen = foundIn(files, expected.keys());
 
     for (const [code, command] of expected) {
       checked++;
