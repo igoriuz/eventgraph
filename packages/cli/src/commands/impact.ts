@@ -6,7 +6,7 @@ export function registerImpactCommand(program: Command): void {
   program
     .command('impact')
     .argument('<node-id>', 'Node ID (e.g., order-placed or payments.order-placed)')
-    .description('Analyze impact: what is affected downstream?')
+    .description('Analyze impact: what a change sets off, and who reads or calls what it changes')
     .option('--depth <n>', 'Max traversal depth', '100')
     .action((nodeId, opts) => {
       const { graph } = loadOrFail();
@@ -50,7 +50,7 @@ export function registerImpactCommand(program: Command): void {
       }
 
       if (result.upstreamDependents.length > 0) {
-        console.log(`\nUpstream dependents (${result.upstreamDependents.length}):`);
+        console.log(`\nUpstream, leading here (${result.upstreamDependents.length}):`);
         for (const node of result.upstreamDependents) {
           console.log('  ' + formatNode(node));
         }

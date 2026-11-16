@@ -58,7 +58,7 @@ describe('rejection contracts', () => {
     const report = verifyRejectionHandling(graphFor(), root);
     expect(report.issues).toEqual([]);
     expect(report.checked).toBe(1);
-    expect(report.actors).toBe(1);
+    expect(report.callers).toBe(1);
   });
 
   it('reports a code the caller has never heard of', () => {
@@ -66,8 +66,21 @@ describe('rejection contracts', () => {
 
     const report = verifyRejectionHandling(graphFor(), root);
     expect(report.issues).toEqual([
-      { actor: 'app.device', command: 'app.report', code: 'TOO_FAST' },
+      { caller: 'app.device', command: 'app.report', code: 'TOO_FAST' },
     ]);
+  });
+
+  it('recognises a code written in the caller language’s own case', () => {
+    // Swift and Kotlin name enum cases tooFast or TooFast, not TOO_FAST.
+    for (const spelling of ['case .tooFast:', 'is Rejection.TooFast ->', "'too-fast'", 'too_fast']) {
+      write('sensor/Errors.swift', spelling);
+      expect(verifyRejectionHandling(graphFor(), root).issues).toEqual([]);
+    }
+  });
+
+  it('does not take a fragment of a code for the code', () => {
+    write('sensor/Errors.swift', 'case .tooSlow, .fast:');
+    expect(verifyRejectionHandling(graphFor(), root).issues).toHaveLength(1);
   });
 
   it('searches a whole tree, not just the files it was pointed at', () => {
@@ -94,7 +107,7 @@ describe('rejection contracts', () => {
   it('says nothing about an actor with no source pointer', () => {
     const report = verifyRejectionHandling(graphFor({ actorSrc: null }), root);
     expect(report.issues).toEqual([]);
-    expect(report.actors).toBe(0);
+    expect(report.callers).toBe(0);
   });
 
   it('says nothing about a command that declares no rejections', () => {
@@ -102,7 +115,7 @@ describe('rejection contracts', () => {
 
     const report = verifyRejectionHandling(graphFor({ rejects: [] }), root);
     expect(report.issues).toEqual([]);
-    expect(report.actors).toBe(0);
+    expect(report.callers).toBe(0);
   });
 
   it('only holds an actor to the commands it actually issues', () => {
@@ -134,7 +147,7 @@ describe('rejection contracts', () => {
 
     const report = verifyRejectionHandling(graph, root);
     expect(report.issues).toEqual([
-      { actor: 'app.device', command: 'app.other', code: 'MISSING' },
+      { caller: 'app.device', command: 'app.other', code: 'MISSING' },
     ]);
   });
 
@@ -169,6 +182,69 @@ describe('rejection contracts', () => {
 
     const report = verifyRejectionHandling(graphFor({ actorSrc: { desktop: ['desktop'] } }), root);
     expect(report.issues).toEqual([]);
-    expect(report.actors).toBe(1);
+    expect(report.callers).toBe(1);
+  });
+
+  describe('surfaces as callers', () => {
+    /** A person issues the command; the screen offering it holds the code. */
+    function offered(surfaceSrc: unknown, kind = 'screen'): EventGraph {
+      const graph = graphFor({ actorSrc: null });
+      graph.addNode({
+        context: 'app',
+        id: 'report-screen',
+        type: 'screen',
+        label: 'report-screen',
+        data: { kind, implemented_by: surfaceSrc },
+      });
+      graph.addEdge({ from: 'app.report-screen', to: 'app.report', type: 'offers' });
+      return graph;
+    }
+
+    it('holds a surface offering the command to its codes', () => {
+      write('ui/ReportScreen.swift', 'case .unknown: break');
+
+      const report = verifyRejectionHandling(offered(['ui/ReportScreen.swift']), root);
+      expect(report.issues).toEqual([
+        { caller: 'app.report-screen', command: 'app.report', code: 'TOO_FAST' },
+      ]);
+      expect(report.callers).toBe(1);
+    });
+
+    it('passes a surface that names the code', () => {
+      write('ui/ReportScreen.swift', 'case "TOO_FAST": showSlowDown()');
+
+      expect(verifyRejectionHandling(offered(['ui/ReportScreen.swift']), root).issues).toEqual([]);
+    });
+
+    it('does not hold a headless surface, which passes the code on', () => {
+      // A CLI prints whatever code it gets; naming each one would be noise.
+      write('cli/report.ts', 'console.log(JSON.stringify({ rejected: code }))');
+
+      for (const kind of ['cli', 'tool', 'endpoint']) {
+        expect(verifyRejectionHandling(offered(['cli/report.ts'], kind), root).callers).toBe(0);
+      }
+    });
+
+    it('says nothing about a surface with no source pointer', () => {
+      const graph = graphFor({ actorSrc: null });
+      graph.addNode({ context: 'app', id: 's', type: 'screen', label: 's' });
+      graph.addEdge({ from: 'app.s', to: 'app.report', type: 'offers' });
+
+      expect(verifyRejectionHandling(graph, root).callers).toBe(0);
+    });
+
+    it('does not hold a surface to a command it only displays', () => {
+      write('ui/ReportScreen.swift', 'nothing');
+
+      const graph = graphFor({ actorSrc: null });
+      graph.addNode({
+        context: 'app',
+        id: 'report-screen',
+        type: 'screen',
+        label: 'report-screen',
+        data: { implemented_by: ['ui/ReportScreen.swift'] },
+      });
+      expect(verifyRejectionHandling(graph, root).issues).toEqual([]);
+    });
   });
 });

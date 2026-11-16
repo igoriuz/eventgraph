@@ -8,6 +8,7 @@ import './ux.js';
 import './platform.js';
 import './backend.js';
 import './parity.js';
+import './services.js';
 
 export { allRules, getRule, LANES } from './kit.js';
 export type { Finding, Lane, Rule, Severity } from './kit.js';

@@ -13,6 +13,7 @@ import {
   sourceRootOf,
   verifyImplementations,
   verifyRejectionHandling,
+  verifyCliOffers,
   collectSources,
   unreadLanguages,
   scaffold,
@@ -169,7 +170,7 @@ export function createReadTools(projectDir: string) {
      */
     eventgraph_verify: tool({
       description:
-        'Check the model against the code: source pointers that no longer resolve, and callers that do not handle a rejection code a command can answer with.',
+        'Check the model against the code: source pointers that no longer resolve, callers that do not handle a rejection code a command can answer with, and CLI surfaces whose source never names a command they offer.',
       input: {
         root: z
           .string()
@@ -181,7 +182,9 @@ export function createReadTools(projectDir: string) {
         const from = sourceRoot(root);
         const report = verifyImplementations(graph, from);
         const contract = verifyRejectionHandling(graph, from);
-        return { ok: report.issues.length + contract.issues.length === 0, sourceRoot: from, ...report, contract };
+        const cli = verifyCliOffers(graph, from);
+        const ok = report.issues.length + contract.issues.length + cli.issues.length === 0;
+        return { ok, sourceRoot: from, ...report, contract, cli };
       },
     }),
 

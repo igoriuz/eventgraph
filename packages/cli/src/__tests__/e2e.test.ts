@@ -94,13 +94,17 @@ describe('E2E', () => {
     const queryPolicies = run('query "type:policy"');
     expect(queryPolicies).toContain('start-fulfillment');
 
-    // impact — order-placed affects order-summary (direct), start-fulfillment (direct, cross-context),
-    //          and shipment-orders (transitive via start-fulfillment -> reads)
+    // impact — order-placed affects order-summary (direct) and start-fulfillment
+    //          (direct, cross-context). The policy only reads shipment-orders,
+    //          so that read-model is not changed by it.
     const impact = run('impact order-placed');
     expect(impact).toContain('order-summary');
     expect(impact).toContain('start-fulfillment');
-    expect(impact).toContain('shipment-orders');
+    expect(impact).not.toContain('shipment-orders');
     expect(impact).toContain('Cross-context: yes');
+
+    // …and the other way round: changing shipment-orders reaches the policy reading it.
+    expect(run('impact shipment-orders')).toContain('start-fulfillment');
 
     // validate — model should be valid under event-modeling preset
     const validate = run('validate');

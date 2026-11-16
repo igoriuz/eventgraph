@@ -1,6 +1,6 @@
 # Concept: a headless core for future apps, planned with eventgraph
 
-Status: draft for decision, 2026-11-16. Reviewed by an independent advisor the
+Status: decided 2026-11-16; release 1 done the same day (skill `core-first`, eventgraph 0.4.0). Release 2 waits for the trial project. Reviewed by an independent advisor the
 same day; its findings are worked in (see the end).
 
 ## Goal
@@ -275,31 +275,22 @@ Field-level modelling waits for B, where it is needed anyway.
 
 ## Decisions
 
-1. **Core rules.** Adopt house rules 1, 2, 4 and 7 for new apps in `~/Private`?
-   *Recommended: yes.* If no, the skill can only run the eventgraph half.
-2. **CLI as a surface** (rules 5 and 6): every command reachable from a CLI with
-   a store file? *Recommended: yes* — it is what lets an agent build and test
-   flows. If no, the parity lane stays off and tests go through the core API only.
-4. **Ports over effects-as-data** (rule 3), with effects-as-data only on the Rust
-   row? *Recommended: yes.* If effects-as-data everywhere: one shape on every
-   stack, at the cost of correlation and cancellation plumbing in Swift/TS/Kotlin.
-5. **Coupling.** A now, B after the trial, C not? *Recommended: yes.* If B now:
-   the first generator is designed before the trial shows which conventions hold.
-6. **Trial project and its row.** Which project, which stack row, which authority?
-   *Recommended: the Swift trial from the handoff (Apple only, device
-   authority)* — it tests the loop without cross-platform tooling risk. If the
-   multi-platform question is the one you want answered, pick a project with an
-   Android or web target and its row instead. This also decides which stack
-   release 1 writes its worked example for.
-7. **eventgraph changes 1–4 above in release 1?** *Recommended: yes.* If only
-   some: without 1 the blast radius stays partial; without 4 external services
-   stay headless actors and rule 3 is checked by review only.
+All decided on 2026-11-16. Decision 3 was answered by Igor directly; the others
+by "follow the recommendations", so they are the recommendations above taken as
+given and can be revisited.
 
 ### Decided
 
-- 2026-11-16 — **Storage (was decision 3):** state-stored with live queries,
-  events in-process only; an event log only where history is the product.
-  Decided by Igor.
+- **1 — Core rules:** house rules 1, 2, 4 and 7 apply to new apps in `~/Private`.
+- **2 — CLI as a surface:** every command reachable from a CLI with a store file
+  (rules 5 and 6).
+- **3 — Storage:** state-stored with live queries, events in-process only; an
+  event log only where history is the product. (Igor's own answer.)
+- **4 — Ports over effects-as-data** (rule 3); effects-as-data only on the Rust row.
+- **5 — Coupling:** A now, B after the trial, C not.
+- **6 — Trial:** the Swift trial from the handoff, Apple only, device authority.
+  Release 1 writes its worked example for Swift.
+- **7 — eventgraph changes 1–4** are part of release 1.
 
 ### Assumptions (decided without asking)
 
@@ -312,10 +303,10 @@ Field-level modelling waits for B, where it is needed anyway.
 ## Releases
 
 **1 — Rules, loop and the four eventgraph changes (4–6 days).**
-`docs/core-architecture.md` with the house rules, the authority table, the
-node→code table and one worked flow for the stack of decision 6; the
-`core-first` skill (model → check → core → test → verify; per-stack recipes as
-reference files, starting with that one stack); eventgraph changes 1–4 across
+The `core-first` skill, global so every project can use it (model → check →
+core → test → verify), carrying the house rules, the authority table, the
+node→code table and per-stack recipes as reference files, starting with a
+worked Swift flow; eventgraph changes 1–4 across
 core, preset, validate, viewer, MCP, README and rule catalogue, released as
 0.4.0. Assumes the skill reuses the existing `check --next` loop and needs no
 new eventgraph command. Usable on its own: the next project starts with it.

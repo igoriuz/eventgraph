@@ -117,6 +117,15 @@ Every view prints how much of the graph it shows, so a narrowed picture is never
 mistaken for the whole one. In the viewer, clicking a node dims everything
 outside its neighbourhood; Escape clears it.
 
+### Who depends on this
+
+`impact <node>` follows what a change sets off — command to event to
+read-model, event to policy to command — and also the edges that point the
+other way: a screen or policy that `reads` a changed read-model, a command that
+`calls` a changed service. So `impact` on a shared read-model or an external API
+lists every flow that uses it. A screen reached because it reads something is
+where the walk stops; what it offers and where it leads do not change with it.
+
 ## validate vs check
 
 `validate` asks whether the graph has a legal *shape*: known node types, a
@@ -138,7 +147,8 @@ has nothing to pull on: no nodes at all, no actor, no aggregate.
 nothing reads; a command nothing issues or that produces nothing; a screen that
 neither reads nor offers; a policy missing either half of event-in/command-out;
 an invariant no command enforces; an aggregate without events or without a
-lifecycle end; an open question blocking other nodes.
+lifecycle end; an open question blocking other nodes; a command that calls a
+service but models no way for the call to fail; a service nothing calls.
 
 **ux** — structural only; nothing about visual design, copy or layout, which are
 not graph problems.
@@ -237,6 +247,29 @@ this survives review.
 non-terminal event written there. The SpacetimeDB scaffold sets it from the
 table declaration, since visibility there is a keyword rather than a guess.
 
+### Systems the core calls
+
+A `service` is a system the code calls out to: an HTTP API, a payment
+provider, the OS calendar. A command `calls` it:
+
+```yaml
+nodes:
+  rates-api:     { type: service, label: Exchange-rate API }
+  fetch-rates:   { type: command, rejects: [RATES_UNAVAILABLE] }
+edges:
+  calls: { fetch-rates: [rates-api] }
+```
+
+Calling out is where a flow most often fails without anyone having modelled
+it, so `service-call-unhandled` asks every calling command for a failure path:
+an event with `failure`, codes in `rejects`, or a decision that `affects` it
+and accepts the loss. A policy reaches a service through the command it
+invokes. Because `impact` follows `calls` backwards, `impact rates-api` lists
+every flow that depends on the API.
+
+`external: <reason>` on a command is something else: the command hands off to
+a system surface and has no observable outcome at all.
+
 ## Backends
 
 The core vocabulary is backend vocabulary to begin with — command, event,
@@ -325,18 +358,35 @@ report-party:  { type: command, rejects: [INVALID_PARTY_DATA, RATE_LIMITED] }
 ```
 
 With an `issues` edge between them, `verify` searches the actor's source for
-each code it can be answered with. A code that appears nowhere is reported. The
+each code it can be answered with. A code that appears nowhere is reported.
+
+A surface made for a person is a caller too. In an app built around a core, the
+person pressing the button has no source; the screen, notification or widget
+that `offers` the command is the code that meets the refusal, so its
+`implemented_by` is searched the same way. A CLI subcommand, an agent tool or
+an endpoint passes the code on to its own caller and is not searched. The
 failure this catches is mundane and near-invisible: a service gains a rejection,
 every test on both sides still passes, and the caller quietly treats the new
 code as unknown — dropping the message, or retrying something that will never
 succeed.
 
 Matching is a substring search across whatever languages the callers are
-written in, which is the point: a parser per language is not worth owning to
-find a constant that is missing entirely. Two honest limits follow. A code
+written in, and across their spellings: `TOO_FAST`, `tooFast`, `TooFast` and
+`too-fast` count as the same code, so a Swift or Kotlin enum case is found. That is the point: a parser per
+language is not worth owning to find a constant that is missing entirely. Two honest limits follow. A code
 mentioned only in a comment counts as handled, and one assembled at runtime is
 not found. It catches the ordinary case, and a false pass is cheaper than a
 check nobody runs.
+
+### Subcommands the model claims
+
+The parity lane takes the model's word that a `cli` surface offers a command.
+`verify` checks the claim: the command's id has to appear in the surface's own
+source, so a subcommand states its name as a literal equal to the id — in
+Swift `CommandConfiguration(commandName: "add-expense")`, in commander
+`.command('add-expense')`. A name derived from a type name is not found, and
+that is the point: the literal is what lets an agent and a reader find the
+subcommand from the model.
 
 ## Two codebases, one product
 
