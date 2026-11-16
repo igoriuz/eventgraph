@@ -1,6 +1,6 @@
 # Concept: a headless core for future apps, planned with eventgraph
 
-Status: decided 2026-11-16; release 1 in progress. Reviewed by an independent advisor the
+Status: decided 2026-11-16; release 1 done the same day (skill `core-first`, eventgraph 0.4.0). Release 2 waits for the trial project. Reviewed by an independent advisor the
 same day; its findings are worked in (see the end).
 
 ## Goal

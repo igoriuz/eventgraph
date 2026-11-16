@@ -20,7 +20,7 @@ const program = new Command();
 program
   .name('eventgraph')
   .description('Agent-first architecture modeling tool')
-  .version('0.3.0');
+  .version('0.4.0');
 
 registerInitCommand(program);
 registerQueryCommand(program);

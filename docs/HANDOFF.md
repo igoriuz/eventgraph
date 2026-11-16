@@ -6,46 +6,39 @@ Last updated: 2026-11-16
 
 ### Claude next
 
-Nothing queued. Released is 0.3.0 (tag `v0.3.0`), which is `main`. A release
-needs the versions raised in the four `package.json` files,
-`packages/cli/src/index.ts` and `packages/mcp/src/server.ts`, then a tag `v*`;
-npm trusted publishing is set up for all four packages.
+- **Release 2 of the core concept** (`docs/core-concept.md`): build the Swift
+  trial model-first with the `core-first` skill and keep a friction log (where
+  model and code disagreed, what `verify` missed, which boilerplate repeated per
+  flow). Starts once Igor names the project.
 
-What 0.3.0 changed for someone on 0.2.0:
-- MCP writes answer with `status` (`applied`, `planned`, `proposed`,
-  `refused`, `invalid`) instead of `success`.
-- `eventgraph_add_node` refuses an id that exists and, like `add_edge`, a
-  change that leaves the model invalid; `eventgraph_init_context` obeys
-  `agent.write` and no longer empties an existing context.
-- Context names and node ids must be plain names (letters, digits, `-`, `_`).
-- `validate` rejects an unknown surface `kind`; `apply` therefore refuses it.
-- A merge with `apply` keeps the comments in the file.
-- `verify` resolves pointers from the project directory itself when
-  `eventgraph.yaml` is not inside a directory named `eventgraph`.
-- New rules in the preset: `command-unoffered`, `command-buried`, and the
-  parity lane.
+Released is 0.4.0 (tag `v0.4.0`), which is `main`. A release needs the
+versions raised in the four `package.json` files, `packages/cli/src/index.ts`
+and `packages/mcp/src/server.ts`, then a tag `v*`; npm trusted publishing is
+set up for all four packages.
+
+What 0.4.0 changed for someone on 0.3.0:
+- Node type `service` and edge `calls` (command → service) in the
+  event-modeling preset, with the rules `service-call-unhandled` and
+  `service-unused` (structure lane, warnings).
+- `impact` follows `reads` and `calls` backwards: a changed read-model lists
+  the screens and policies reading it, a changed service every command calling
+  it. A screen reached that way is a leaf. Totals and risk are higher than on
+  0.3.0 for the same model; "Upstream dependents" in the CLI is now
+  "Upstream, leading here" and leaves out what is already affected.
+- `verify`: screens, notifications and widgets that `offer` a command are held
+  to its `rejects` like actors (headless surfaces are not, they pass codes on);
+  codes match across spellings (`TOO_FAST`, `tooFast`, `TooFast`,
+  `too-fast`); a `cli` surface must name every command it offers.
+- JSON of `verify` (CLI `--json` and MCP): `contract.actors` is now
+  `contract.callers`, `contract.issues[].actor` is `caller`; new `cli` block
+  `{checked, issues[{surface, command, name}], unsearchable}`.
 
 ### Igor decides
 
-- **Headless-core concept** (`docs/core-concept.md`, 2026-11-16, reviewed by
-  an advisor): seven numbered decisions — house rules, CLI as surface,
-  state-stored storage, ports over effects-as-data, coupling A/B/C, trial
-  project and stack row, eventgraph changes for release 1. Release 1 starts
-  once they are answered.
-
-- Whether to try the parity lane on a real app built (or to be built) around a
-  headless core — the fastest way to see whether the rules hold up.
-
-- **Trial project is Swift, model-first.** Scaffold has no Swift extractor and
-  none is needed for a new project; it now names the languages it walks past
-  (`unreadLanguages`, `unread` in `--json`). Proposed and not yet confirmed:
-  extend `verify` so a `cli` surface that `offers` a command must mention the
-  command's name in its own `src` (substring, like `rejects`) — the only
-  language-neutral guard against the model claiming a subcommand that does not
-  exist. Also to settle before the first line of code: project conventions
-  (core first, CLI subcommand per command, `--json`, rejection codes, done =
-  `check` + `verify` + a CLI test) and how state survives between CLI calls
-  (persistent store or a script mode).
+- **Which project is the Swift trial** (core concept, decision 6: Apple only,
+  device authority). Release 1 is done: the global skill `core-first`
+  (`~/.claudes/skills/core-first`, with a compiled Swift example under
+  `examples/swift-trips`) and eventgraph 0.4.0.
 
 - **jetphrase: 13 `command-buried` warnings** since the rule was enabled in
   the preset on 2026-11-14. Most come from the model: the only `entry` screen
@@ -63,6 +56,15 @@ What 0.3.0 changed for someone on 0.2.0:
   `screen-unreachable` finding).
 
 ### Later on purpose
+
+- From the maintenance pass of 2026-11-16: the `verify` action in the CLI
+  (`packages/cli/src/commands/verify.ts`) is one function of CCN 21 printing
+  three reports — split into one printer per report; CLI and MCP each decide
+  what makes `verify` fail (sum of three issue lists) — one `verifyAll` in core
+  returning `ok`. Also: when everything else is clean, `verify` returns early
+  and never prints `unsearchable` callers or CLI surfaces (pre-existing for
+  callers); an invalid `impact --depth` (NaN) now walks unbounded where 0.3.0
+  returned nothing.
 
 - Inferring `issues`/`sees` when exactly one non-headless actor exists
   (Formox trial: 22 + 19 edges of boilerplate). Not built: it saves typing
