@@ -371,8 +371,9 @@ code as unknown — dropping the message, or retrying something that will never
 succeed.
 
 Matching is a substring search across whatever languages the callers are
-written in, which is the point: a parser per language is not worth owning to
-find a constant that is missing entirely. Two honest limits follow. A code
+written in, and across their spellings: `TOO_FAST`, `tooFast`, `TooFast` and
+`too-fast` count as the same code, so a Swift or Kotlin enum case is found. That is the point: a parser per
+language is not worth owning to find a constant that is missing entirely. Two honest limits follow. A code
 mentioned only in a comment counts as handled, and one assembled at runtime is
 not found. It catches the ordinary case, and a false pass is cheaper than a
 check nobody runs.

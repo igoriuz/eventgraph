@@ -70,6 +70,19 @@ describe('rejection contracts', () => {
     ]);
   });
 
+  it('recognises a code written in the caller language’s own case', () => {
+    // Swift and Kotlin name enum cases tooFast or TooFast, not TOO_FAST.
+    for (const spelling of ['case .tooFast:', 'is Rejection.TooFast ->', "'too-fast'", 'too_fast']) {
+      write('sensor/Errors.swift', spelling);
+      expect(verifyRejectionHandling(graphFor(), root).issues).toEqual([]);
+    }
+  });
+
+  it('does not take a fragment of a code for the code', () => {
+    write('sensor/Errors.swift', 'case .tooSlow, .fast:');
+    expect(verifyRejectionHandling(graphFor(), root).issues).toHaveLength(1);
+  });
+
   it('searches a whole tree, not just the files it was pointed at', () => {
     write('sensor/deep/nested/Codes.lua', 'local TOO_FAST = "TOO_FAST"');
 

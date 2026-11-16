@@ -83,21 +83,32 @@ export function sourceFilesOf(node: GraphNode, sourceRoot: string): string[] {
   return files;
 }
 
-/** Which of `needles` occur in any of `files`, reading each file once. */
-export function foundIn(files: string[], needles: Iterable<string>): Set<string> {
-  const wanted = new Set(needles);
+/**
+ * Which of `needles` occur in any of `files`, reading each file once.
+ * `fold` is applied to both sides before comparing, so a caller can decide
+ * which spellings count as the same name.
+ */
+export function foundIn(
+  files: string[],
+  needles: Iterable<string>,
+  fold: (text: string) => string = text => text
+): Set<string> {
+  const wanted = new Map([...needles].map(needle => [needle, fold(needle)]));
   const seen = new Set<string>();
   for (const file of files) {
     if (seen.size === wanted.size) break;
     let content: string;
     try {
-      content = readFileSync(file, 'utf-8');
+      content = fold(readFileSync(file, 'utf-8'));
     } catch {
       continue;
     }
-    for (const needle of wanted) {
-      if (!seen.has(needle) && content.includes(needle)) seen.add(needle);
+    for (const [needle, folded] of wanted) {
+      if (!seen.has(needle) && content.includes(folded)) seen.add(needle);
     }
   }
   return seen;
 }
+
+/** TOO_FAST, tooFast, TooFast, too-fast and too_fast as one spelling. */
+export const ignoringCase = (text: string): string => text.toLowerCase().replace(/[_-]/g, '');

@@ -2,7 +2,7 @@ import type { EventGraph } from './graph.js';
 import type { GraphNode } from './schema.js';
 import { qualifiedId } from './schema.js';
 import { pointersOf } from './verify.js';
-import { foundIn, sourceFilesOf } from './source-search.js';
+import { foundIn, ignoringCase, sourceFilesOf } from './source-search.js';
 import { HUMAN_KINDS, kindOf } from './rules/kit.js';
 
 /**
@@ -22,8 +22,9 @@ import { HUMAN_KINDS, kindOf } from './rules/kit.js';
  * subcommand, an agent tool or an endpoint passes the code on to whoever called
  * it, so the far end is that caller, not the surface.
  *
- * Matching is a substring search, deliberately. Codes are shouty constants and
- * a parser per language is not worth owning; the failure being caught is a code
+ * Matching is a substring search, deliberately, across spellings: a service
+ * answers TOO_FAST, a Swift caller handles `.tooFast`, a Kotlin one `TooFast`.
+ * A parser per language is not worth owning; the failure being caught is a code
  * that appears nowhere at all, which no amount of parsing precision changes. A
  * code found only in a comment counts as handled, and that is the honest limit.
  */
@@ -97,7 +98,7 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
       continue;
     }
 
-    const seen = foundIn(files, expected.keys());
+    const seen = foundIn(files, expected.keys(), ignoringCase);
 
     for (const [code, command] of expected) {
       checked++;
