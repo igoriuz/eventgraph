@@ -280,9 +280,6 @@ Field-level modelling waits for B, where it is needed anyway.
 2. **CLI as a surface** (rules 5 and 6): every command reachable from a CLI with
    a store file? *Recommended: yes* — it is what lets an agent build and test
    flows. If no, the parity lane stays off and tests go through the core API only.
-3. **Storage.** State-stored with live queries, events in-process only; an event
-   log only where history is the product? *Recommended: yes.* If event-sourced
-   by default: projections, rebuilds and event migrations on every project.
 4. **Ports over effects-as-data** (rule 3), with effects-as-data only on the Rust
    row? *Recommended: yes.* If effects-as-data everywhere: one shape on every
    stack, at the cost of correlation and cancellation plumbing in Swift/TS/Kotlin.
@@ -297,6 +294,12 @@ Field-level modelling waits for B, where it is needed anyway.
 7. **eventgraph changes 1–4 above in release 1?** *Recommended: yes.* If only
    some: without 1 the blast radius stays partial; without 4 external services
    stay headless actors and rule 3 is checked by review only.
+
+### Decided
+
+- 2026-11-16 — **Storage (was decision 3):** state-stored with live queries,
+  events in-process only; an event log only where history is the product.
+  Decided by Igor.
 
 ### Assumptions (decided without asking)
 
