@@ -117,6 +117,15 @@ Every view prints how much of the graph it shows, so a narrowed picture is never
 mistaken for the whole one. In the viewer, clicking a node dims everything
 outside its neighbourhood; Escape clears it.
 
+### Who depends on this
+
+`impact <node>` follows what a change sets off — command to event to
+read-model, event to policy to command — and also the edges that point the
+other way: a screen or policy that `reads` a changed read-model, a command that
+`calls` a changed service. So `impact` on a shared read-model or an external API
+lists every flow that uses it. A screen reached because it reads something is
+where the walk stops; what it offers and where it leads do not change with it.
+
 ## validate vs check
 
 `validate` asks whether the graph has a legal *shape*: known node types, a

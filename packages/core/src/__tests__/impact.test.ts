@@ -23,7 +23,7 @@ describe('analyzeImpact', () => {
   it('returns direct and transitive downstream nodes', () => {
     const result = analyzeImpact(graph, 'payments.order-placed');
     expect(result.direct.map(n => n.id).sort()).toEqual(['order-summary', 'start-fulfillment']);
-    expect(result.transitive.map(n => n.id)).toEqual(['shipment-started']);
+    expect(result.transitive.map(n => n.id).sort()).toEqual(['order-screen', 'shipment-started']);
   });
 
   it('lists affected contexts', () => {
@@ -38,7 +38,7 @@ describe('analyzeImpact', () => {
 
   it('calculates risk based on node count', () => {
     const result = analyzeImpact(graph, 'payments.order-placed');
-    expect(result.totalAffected).toBe(3);
+    expect(result.totalAffected).toBe(4);
     expect(result.risk).toBe('medium');
   });
 
@@ -48,9 +48,47 @@ describe('analyzeImpact', () => {
     expect(result.risk).toBe('low');
   });
 
-  it('includes upstream dependents (who reads this?)', () => {
+  it('lists a reader of a changed read-model as affected', () => {
     const result = analyzeImpact(graph, 'payments.order-summary');
-    expect(result.upstreamDependents.map(n => n.id)).toContain('order-screen');
+    expect(result.direct.map(n => n.id)).toEqual(['order-screen']);
+    expect(result.upstreamDependents.map(n => n.id)).toEqual(['order-placed']);
+  });
+
+  it('follows a read-model to its readers from further upstream', () => {
+    // The screen showing the summary is the one place a person notices that
+    // placing an order changed. Downstream edges alone never reach it.
+    const result = analyzeImpact(graph, 'payments.place-order');
+    expect(result.transitive.map(n => n.id)).toContain('order-screen');
+  });
+
+  it('stops at a screen reached through what it reads', () => {
+    graph.addNode({ id: 'cancel-order', type: 'command', label: 'Cancel Order', context: 'payments' });
+    graph.addNode({ id: 'home', type: 'screen', label: 'Home', context: 'payments' });
+    graph.addEdge({ from: 'payments.order-screen', to: 'payments.cancel-order', type: 'offers' });
+    graph.addEdge({ from: 'payments.order-screen', to: 'payments.home', type: 'navigates-to' });
+
+    const ids = analyzeImpact(graph, 'payments.order-summary').transitive.map(n => n.id);
+    expect(ids).not.toContain('cancel-order');
+    expect(ids).not.toContain('home');
+  });
+
+  it('continues through a policy that reads a changed read-model', () => {
+    graph.addNode({ id: 'restock', type: 'policy', label: 'Restock', context: 'payments' });
+    graph.addNode({ id: 'order-stock', type: 'command', label: 'Order Stock', context: 'payments' });
+    graph.addEdge({ from: 'payments.restock', to: 'payments.order-summary', type: 'reads' });
+    graph.addEdge({ from: 'payments.restock', to: 'payments.order-stock', type: 'invokes' });
+
+    const ids = analyzeImpact(graph, 'payments.order-summary').transitive.map(n => n.id);
+    expect(ids).toContain('order-stock');
+  });
+
+  it('lists every command calling a service, and what they set off', () => {
+    graph.addNode({ id: 'payment-api', type: 'service', label: 'Payment API', context: 'payments' });
+    graph.addEdge({ from: 'payments.place-order', to: 'payments.payment-api', type: 'calls' });
+
+    const result = analyzeImpact(graph, 'payments.payment-api');
+    expect(result.direct.map(n => n.id)).toEqual(['place-order']);
+    expect(result.transitive.map(n => n.id)).toContain('order-screen');
   });
 
   it('respects depth limit', () => {
