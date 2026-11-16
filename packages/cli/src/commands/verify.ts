@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { resolve } from 'node:path';
-import { sourceRootOf, verifyCliOffers, verifyImplementations, verifyRejectionHandling } from 'eventgraph-core';
+import { sourceRootOf, verifyAll } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
 
 /**
@@ -18,13 +18,12 @@ export function registerVerifyCommand(program: Command): void {
     .action((opts: { root?: string; json?: boolean }) => {
       const { projectDir, graph } = loadOrFail();
       const sourceRoot = opts.root ? resolve(opts.root) : sourceRootOf(projectDir);
-      const report = verifyImplementations(graph, sourceRoot);
-      const contract = verifyRejectionHandling(graph, sourceRoot);
-      const cli = verifyCliOffers(graph, sourceRoot);
-      const failed = report.issues.length + contract.issues.length + cli.issues.length > 0;
+      const report = verifyAll(graph, sourceRoot);
+      const { contract, cli } = report;
+      const failed = !report.ok;
 
       if (opts.json) {
-        console.log(JSON.stringify({ sourceRoot, ...report, contract, cli }, null, 2));
+        console.log(JSON.stringify({ sourceRoot, ...report }, null, 2));
         process.exit(failed ? 1 : 0);
       }
 
