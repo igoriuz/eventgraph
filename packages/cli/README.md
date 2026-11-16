@@ -17,7 +17,8 @@ told which gaps are structurally impossible to leave open, so the loop becomes
 eventgraph scaffold                 extract a partial model from source
 eventgraph apply                    merge a model from a file or stdin
 eventgraph check                    completeness: what is missing?
-eventgraph verify                   do pointers resolve, do callers know the rejections?
+eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist
+eventgraph impact <node>            what a change sets off, and who depends on it
 eventgraph slice <event>            the swimlane around one event
 eventgraph view                     HTML viewer
 eventgraph rules                    every rule, and why it exists
