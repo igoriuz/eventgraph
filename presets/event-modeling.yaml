@@ -14,6 +14,7 @@ nodeTypes:
   - invariant
   - decision
   - question
+  - service
 
 edgeTypes:
   - issues        # actor     -> command
@@ -31,6 +32,7 @@ edgeTypes:
   - sees          # actor     -> screen
   - affects       # decision  -> anything
   - blocks        # question  -> anything
+  - calls         # command   -> service
 
 edgeRules:
   - { type: issues, from: actor, to: command }
@@ -49,6 +51,7 @@ edgeRules:
   - { type: sees, from: actor, to: screen }
   - { type: affects, from: decision, to: "*" }
   - { type: blocks, from: question, to: "*" }
+  - { type: calls, from: command, to: service }
 
 # Completeness rules, enforced by `eventgraph check`. Every one of these was
 # hardened against real applications rather than derived on paper.
@@ -72,6 +75,8 @@ rules:
   - aggregate-no-lifecycle-end
   - actor-idle
   - open-question-blocking
+  - service-call-unhandled
+  - service-unused
   # UX — structural only; nothing about visual design, copy or layout
   - command-no-feedback
   - headless-rejection-lost

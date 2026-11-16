@@ -147,7 +147,8 @@ has nothing to pull on: no nodes at all, no actor, no aggregate.
 nothing reads; a command nothing issues or that produces nothing; a screen that
 neither reads nor offers; a policy missing either half of event-in/command-out;
 an invariant no command enforces; an aggregate without events or without a
-lifecycle end; an open question blocking other nodes.
+lifecycle end; an open question blocking other nodes; a command that calls a
+service but models no way for the call to fail; a service nothing calls.
 
 **ux** — structural only; nothing about visual design, copy or layout, which are
 not graph problems.
@@ -245,6 +246,29 @@ this survives review.
 `subscribable: false` on an aggregate turns that into a finding on every
 non-terminal event written there. The SpacetimeDB scaffold sets it from the
 table declaration, since visibility there is a keyword rather than a guess.
+
+### Systems the core calls
+
+A `service` is a system the code calls out to: an HTTP API, a payment
+provider, the OS calendar. A command `calls` it:
+
+```yaml
+nodes:
+  rates-api:     { type: service, label: Exchange-rate API }
+  fetch-rates:   { type: command, rejects: [RATES_UNAVAILABLE] }
+edges:
+  calls: { fetch-rates: [rates-api] }
+```
+
+Calling out is where a flow most often fails without anyone having modelled
+it, so `service-call-unhandled` asks every calling command for a failure path:
+an event with `failure`, codes in `rejects`, or a decision that `affects` it
+and accepts the loss. A policy reaches a service through the command it
+invokes. Because `impact` follows `calls` backwards, `impact rates-api` lists
+every flow that depends on the API.
+
+`external: <reason>` on a command is something else: the command hands off to
+a system surface and has no observable outcome at all.
 
 ## Backends
 

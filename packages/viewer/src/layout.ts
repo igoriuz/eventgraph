@@ -38,9 +38,9 @@ const SWIMLANE_ORDER: Record<string, number> = {
   policy: 5,
   aggregate: 6,
   invariant: 6,
+  service: 6,
   decision: 7,
   question: 7,
-  service: 7,
   custom: 7,
 };
 
@@ -51,7 +51,7 @@ export const SWIMLANE_LABELS = [
   'Commands',
   'Events',
   'Policies',
-  'Aggregates & Rules',
+  'Aggregates, Rules & Services',
   'Notes',
 ];
 
