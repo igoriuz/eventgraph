@@ -11,9 +11,7 @@ import {
   slice,
   lifecycle,
   sourceRootOf,
-  verifyImplementations,
-  verifyRejectionHandling,
-  verifyCliOffers,
+  verifyAll,
   collectSources,
   unreadLanguages,
   scaffold,
@@ -180,11 +178,7 @@ export function createReadTools(projectDir: string) {
       async run({ root }) {
         const { graph } = open();
         const from = sourceRoot(root);
-        const report = verifyImplementations(graph, from);
-        const contract = verifyRejectionHandling(graph, from);
-        const cli = verifyCliOffers(graph, from);
-        const ok = report.issues.length + contract.issues.length + cli.issues.length === 0;
-        return { ok, sourceRoot: from, ...report, contract, cli };
+        return { sourceRoot: from, ...verifyAll(graph, from) };
       },
     }),
 

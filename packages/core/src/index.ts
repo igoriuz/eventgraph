@@ -81,6 +81,7 @@ export {
   type ContractReport,
 } from './contract.js';
 export { verifyCliOffers, type CliOfferIssue, type CliOfferReport } from './cli-offers.js';
+export { verifyAll, type FullVerifyReport } from './verify-all.js';
 export {
   checkGraph,
   resolveRules,
