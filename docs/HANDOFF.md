@@ -33,6 +33,11 @@ What 0.4.0 changed for someone on 0.3.0:
   `contract.callers`, `contract.issues[].actor` is `caller`; new `cli` block
   `{checked, issues[{surface, command, name}], unsearchable}`.
 
+Unreleased on `main` since 0.4.0: `verifyAll` in core decides what fails
+`verify` for CLI and MCP alike, and the CLI's `verify --json` now carries `ok`
+as the MCP tool already did; the CLI's `verify` output is one printer per
+report (CCN 21 → 6).
+
 ### Igor decides
 
 - **Which project is the Swift trial** (core concept, decision 6: Apple only,
@@ -57,14 +62,10 @@ What 0.4.0 changed for someone on 0.3.0:
 
 ### Later on purpose
 
-- From the maintenance pass of 2026-11-16: the `verify` action in the CLI
-  (`packages/cli/src/commands/verify.ts`) is one function of CCN 21 printing
-  three reports — split into one printer per report; CLI and MCP each decide
-  what makes `verify` fail (sum of three issue lists) — one `verifyAll` in core
-  returning `ok`. Also: when everything else is clean, `verify` returns early
-  and never prints `unsearchable` callers or CLI surfaces (pre-existing for
-  callers); an invalid `impact --depth` (NaN) now walks unbounded where 0.3.0
-  returned nothing.
+- From the logic review of 2026-11-16, filed: when everything else is clean,
+  `verify` prints only the success lines and never the `unsearchable` callers
+  or CLI surfaces; an invalid `impact --depth` (NaN) now walks unbounded where
+  0.3.0 returned nothing.
 
 - Inferring `issues`/`sees` when exactly one non-headless actor exists
   (Formox trial: 22 + 19 edges of boilerplate). Not built: it saves typing
