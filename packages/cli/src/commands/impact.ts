@@ -21,7 +21,12 @@ export function registerImpactCommand(program: Command): void {
         qualifiedId = `${match.context}.${match.id}`;
       }
 
-      const result = analyzeImpact(graph, qualifiedId, { maxDepth: parseInt(opts.depth) });
+      const maxDepth = Number(opts.depth);
+      if (!Number.isInteger(maxDepth) || maxDepth < 1) {
+        console.error(`--depth must be a positive whole number, got "${opts.depth}"`);
+        process.exit(1);
+      }
+      const result = analyzeImpact(graph, qualifiedId, { maxDepth });
 
       const riskColors: Record<string, string> = {
         low: '\x1b[32m',
