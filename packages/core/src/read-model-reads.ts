@@ -85,7 +85,9 @@ export function verifyReadModelReads(graph: EventGraph, sourceRoot: string): Rea
     checked++;
     if (symbols.some(s => namesSymbol(own, s))) continue;
     allFiles ??= sourceFilesUnder(sourceRoot);
-    const near = referencedBy(own, allFiles);
+    // The file defining the read-model names its symbol by definition; reaching it proves nothing.
+    const defining = new Set(sourceFilesOf(readModel, sourceRoot));
+    const near = referencedBy(own, allFiles).filter(f => !defining.has(f));
     if (symbols.some(s => namesSymbol(near, s))) continue;
 
     issues.push({ reader: readerId, readModel: qualifiedId(readModel.context, readModel.id), symbol: symbols.join(' | ') });

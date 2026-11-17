@@ -57,6 +57,14 @@ describe('reads of core read-models', () => {
     expect(verifyReadModelReads(graphFor([CORE]), root).issues).toEqual([]);
   });
 
+  it('does not count the file defining the read-model as a hop', () => {
+    // Several read-models share ReadModels.swift; naming the file is not reading this one.
+    write('ui/Today.swift', 'let progress = ReadModels.blockProgress(log)');
+    write('core/ReadModels.swift', 'struct TodaysSession {}\nstruct BlockProgress {}');
+
+    expect(verifyReadModelReads(graphFor([CORE]), root).issues).toHaveLength(1);
+  });
+
   it('does not take a longer name for the symbol', () => {
     write('ui/Today.swift', 'let x = TodaysSessionDraft()');
 
