@@ -261,6 +261,10 @@ not graph problems.
 - an endpoint that names no caller
 - a policy not declared idempotent, though redelivery is guaranteed
 - one reaction writing across several aggregates, which cannot be atomic
+
+A policy the code runs in the same write as the command that triggered it is
+neither: `same_transaction: <reason>` keeps it in the model, as the rule it
+is, without asking for a redelivery guard or a compensating path.
 - a projection that does not state whether reads are immediate or eventual
 - a command upholding an invariant but modelling no rejection
 - a rejection silenced by `terminal`
@@ -293,6 +297,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `external: <reason>` | command | hands off to a system surface, so no outcome is observable |
 | `failure` | event | records a refusal rather than a success |
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
+| `same_transaction: <reason>` | policy | the code runs it inside the write of the triggering command, so it is never redelivered and its writes are atomic with that one |
 | `consistency` | read-model | `immediate` or `eventual` — whether a reader sees its own write |
 | `entry` | screen | where the app opens; reachability is measured from here |
 | `headless` | actor | a sensor, scheduler or partner system — nothing to look at, so feedback rules do not apply |
