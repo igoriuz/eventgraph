@@ -182,7 +182,7 @@ eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
 eventgraph check --next 3           the most pressing gaps, in priority order
-eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist
+eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist, core read-models are read
 eventgraph slice <event>            the swimlane around one event
 eventgraph lifecycle <aggregate>    its events, the closing one last
 eventgraph impact <node>            what a change sets off, and who depends on it
@@ -261,6 +261,10 @@ not graph problems.
 - an endpoint that names no caller
 - a policy not declared idempotent, though redelivery is guaranteed
 - one reaction writing across several aggregates, which cannot be atomic
+
+A policy the code runs in the same write as the command that triggered it is
+neither: `same_transaction: <reason>` keeps it in the model, as the rule it
+is, without asking for a redelivery guard or a compensating path.
 - a projection that does not state whether reads are immediate or eventual
 - a command upholding an invariant but modelling no rejection
 - a rejection silenced by `terminal`
@@ -293,6 +297,7 @@ node's `data` and each one that silences a finding demands a reason:
 | `external: <reason>` | command | hands off to a system surface, so no outcome is observable |
 | `failure` | event | records a refusal rather than a success |
 | `idempotent` | policy | safe to run twice, as at-least-once delivery requires |
+| `same_transaction: <reason>` | policy | the code runs it inside the write of the triggering command, so it is never redelivered and its writes are atomic with that one |
 | `consistency` | read-model | `immediate` or `eventual` — whether a reader sees its own write |
 | `entry` | screen | where the app opens; reachability is measured from here |
 | `headless` | actor | a sensor, scheduler or partner system — nothing to look at, so feedback rules do not apply |
@@ -468,6 +473,15 @@ mentioned only in a comment counts as handled, and one assembled at runtime is
 not found. It catches the ordinary case, and a false pass is cheaper than a
 check nobody runs.
 
+A missing code is often handled after all, just not in the files the model
+points at: in a helper the screen calls, or in one shared handler every screen
+sends through. So a reported code names, as "maybe handled in", up to three
+files the caller's own source refers to — by path in an import, or by a type
+named after the file (`AppModel` for `AppModel.swift`) — that contain it.
+The side that throws it, tests and configuration are left out. If one of them
+is the handler, add it to the caller's `implemented_by`; in `--json` the
+files are `foundElsewhere` on the issue.
+
 ### Subcommands the model claims
 
 The parity lane takes the model's word that a `cli` surface offers a command.
@@ -477,6 +491,25 @@ Swift `CommandConfiguration(commandName: "add-expense")`, in commander
 `.command('add-expense')`. A name derived from a type name is not found, and
 that is the point: the literal is what lets an agent and a reader find the
 subcommand from the model.
+
+### Core read-models the screens really read
+
+In an app built around a core, a migration stops halfway without anyone
+noticing: the CLI reads the core read-model, the screen still computes the same
+answer from raw state, and the model says the screen `reads` it. Name the
+core type with a `#symbol` on the read-model's pointer and `verify` holds
+every reader to it:
+
+```yaml
+todays-session: { type: read-model, src: Sources/Core/ReadModels.swift#TodaysSession }
+```
+
+The symbol (the last segment of a dotted one, so `FavoritesCore.favoritesList`
+looks for `favoritesList`) must appear as a whole word in the reader's source
+or in a file that source refers to, so reading through a repository or a view
+model counts. A read-model without a `#symbol` names a question the code
+answers under other names and is not checked. In `--json` the result is the
+`reads` block `{checked, issues[{reader, readModel, symbol}], unsearchable}`.
 
 ## Two codebases, one product
 

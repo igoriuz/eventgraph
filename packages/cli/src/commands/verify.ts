@@ -6,6 +6,7 @@ import {
   type CliOfferReport,
   type ContractReport,
   type FullVerifyReport,
+  type ReadModelReadReport,
   type VerifyReport,
 } from 'eventgraph-core';
 import { loadOrFail } from '../util.js';
@@ -37,6 +38,7 @@ export function registerVerifyCommand(program: Command): void {
         printPointers(report);
         printContract(report.contract);
         printCliOffers(report.cli);
+        printReads(report.reads);
         printUnsearchable(report);
         printSummary(report, sourceRoot);
       }
@@ -54,6 +56,9 @@ function printClean(report: FullVerifyReport, sourceRoot: string): void {
   }
   if (report.cli.checked > 0) {
     console.log(`✓ ${report.cli.checked} CLI subcommand(s) named in their source`);
+  }
+  if (report.reads.checked > 0) {
+    console.log(`✓ ${report.reads.checked} read(s) of a core read-model found in the reader's source`);
   }
   console.log(`  resolved from ${sourceRoot}`);
 }
@@ -86,7 +91,10 @@ function printContract(contract: ContractReport): void {
     console.log(`✗ ${caller}`);
     for (const issue of missing) {
       console.log(`  ${issue.code} — from ${issue.command}, appears nowhere in this caller's source`);
+      if (issue.foundElsewhere) console.log(`    maybe handled in ${issue.foundElsewhere.join(', ')}, which this caller uses`);
     }
+    const hinted = missing.some(issue => issue.foundElsewhere);
+    if (hinted) console.log(`  → if a file named above handles it for this caller, add that file to the caller's implemented_by`);
     console.log(`  → handle the code, or drop it from the command's rejects if the service no longer answers with it\n`);
   }
 }
@@ -96,6 +104,14 @@ function printCliOffers(cli: CliOfferReport): void {
     console.log(`✗ ${issue.surface}`);
     console.log(`  offers ${issue.command}, but "${issue.name}" appears nowhere in its source`);
     console.log(`  → name the subcommand with the command id as a literal, or drop the offers edge\n`);
+  }
+}
+
+function printReads(reads: ReadModelReadReport): void {
+  for (const issue of reads.issues) {
+    console.log(`✗ ${issue.reader}`);
+    console.log(`  reads ${issue.readModel}, but ${issue.symbol} appears neither in its source nor in a file it uses`);
+    console.log(`  → read the core type, point implemented_by at the file that does, or drop the reads edge\n`);
   }
 }
 
@@ -111,12 +127,18 @@ function printUnsearchable(report: FullVerifyReport): void {
     console.log(`  offers commands, but its pointers matched no readable file`);
     console.log(`  → point implemented_by at the subcommand's source, or its names go unchecked\n`);
   }
+  for (const id of report.reads.unsearchable) {
+    console.log(`! ${id}`);
+    console.log(`  reads a read-model with a #symbol, but its pointers matched no readable file`);
+    console.log(`  → point implemented_by at the reader's source, or the read goes unchecked\n`);
+  }
 }
 
 function printSummary(report: FullVerifyReport, sourceRoot: string): void {
   const parts = [`${report.issues.length} broken pointer(s)`];
   if (report.contract.issues.length > 0) parts.push(`${report.contract.issues.length} unhandled rejection(s)`);
   if (report.cli.issues.length > 0) parts.push(`${report.cli.issues.length} unnamed subcommand(s)`);
+  if (report.reads.issues.length > 0) parts.push(`${report.reads.issues.length} unread read-model(s)`);
   parts.push(`${report.undeclared.length} undeclared`, `${report.checked} checked`);
   console.log(`${parts.join(', ')} (from ${sourceRoot})`);
 }

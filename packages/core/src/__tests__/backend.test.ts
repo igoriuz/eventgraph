@@ -177,6 +177,24 @@ describe('each backend rule', () => {
     expect(backendHits(g)).toContain('policy-spans-aggregates');
   });
 
+  it('a policy run inside the triggering write is neither redelivered nor split across transactions', () => {
+    // Formox: report-pain → policy → exclude-exercise is one atomic write in the code.
+    const g = serviceGraph();
+    g.addNode({ context: 'app', id: 'other', type: 'aggregate', label: 'other', data: { immortal: true } });
+    g.addNode({ context: 'app', id: 'side-effect', type: 'command', label: 'side-effect' });
+    g.addEdge(edge('react', 'invokes', 'side-effect'));
+    g.addEdge(edge('side-effect', 'acts-on', 'other'));
+    const policy = g.getNode('app.react')!;
+    policy.data = { ...policy.data, idempotent: undefined };
+    expect(backendHits(g)).toContain('policy-not-idempotent');
+    expect(backendHits(g)).toContain('policy-spans-aggregates');
+
+    policy.data = { ...policy.data, same_transaction: 'PainState.report writes both' };
+
+    expect(backendHits(g)).not.toContain('policy-not-idempotent');
+    expect(backendHits(g)).not.toContain('policy-spans-aggregates');
+  });
+
   it('read-model-consistency-unstated fires until the staleness window is stated', () => {
     const g = serviceGraph();
     g.getNode('app.status')!.data = {};

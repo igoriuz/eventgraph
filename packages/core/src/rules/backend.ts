@@ -52,20 +52,20 @@ defineRule(
     severity: 'error',
     lane: 'backend',
     about:
-      'Across a real message boundary delivery is at-least-once, so every policy will eventually run twice on the same event. A policy that is not safe to repeat is a double-charge or a duplicate row waiting for a retry to happen.',
+      'Across a real message boundary delivery is at-least-once, so every policy will eventually run twice on the same event. A policy that is not safe to repeat is a double-charge or a duplicate row waiting for a retry to happen. A policy the code runs inside the triggering write (same_transaction) crosses no boundary and is never redelivered.',
   },
   (g, self) => {
     if (!isBackend(g)) return [];
     return g
       .getNodesByType('policy')
       .filter(p => sources(g, p, 'triggers', 'event').length > 0 && targets(g, p, 'invokes').length > 0)
-      .filter(p => flag(p, 'idempotent') !== true)
+      .filter(p => flag(p, 'idempotent') !== true && !hasFlag(p, 'same_transaction'))
       .map(p =>
         finding(
           self,
           p,
           'reaction is not declared idempotent, but redelivery is guaranteed',
-          'Make the invoked command safe to repeat (dedupe key, conditional write) and set data.idempotent.'
+          'Make the invoked command safe to repeat (dedupe key, conditional write) and set data.idempotent, or set data.same_transaction to a reason if the code runs it inside the triggering write.'
         )
       );
   }
@@ -77,12 +77,13 @@ defineRule(
     severity: 'warn',
     lane: 'backend',
     about:
-      'One reaction writing to several aggregates cannot be atomic — each write is its own transaction. Partial completion is therefore a state the system will reach, and it needs a compensating path rather than an assumption that it will not happen.',
+      'One reaction writing to several aggregates cannot be atomic — each write is its own transaction. Partial completion is therefore a state the system will reach, and it needs a compensating path rather than an assumption that it will not happen. A policy the code runs inside the triggering write (same_transaction) is atomic by construction.',
   },
   (g, self) => {
     if (!isBackend(g)) return [];
     return g
       .getNodesByType('policy')
+      .filter(policy => !hasFlag(policy, 'same_transaction'))
       .map(policy => ({
         policy,
         aggregates: new Set(
