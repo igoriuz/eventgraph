@@ -65,6 +65,42 @@ Last updated: 2026-11-17 (late)
     `verify` checks the `src` exists, not that the screen reads it.
   - **The CLI paid off at once:** it found a pre-existing bug (deleting the
     store failed under "Application Support", a percent-encoded path).
+- **Formox second pass (2026-11-18): screens read the core.** Every Formox
+  screen now reads core read-models instead of the stored log, and the model
+  follows the code (119 → 104 nodes). Full log: Formox
+  `docs/core-first-friction.md`, section "Second pass". What it says for
+  eventgraph:
+  - **`verify` checks no `reads` edge — the largest gap.** A model clean on
+    `check` and `verify` had about a dozen wrong or missing `reads` edges
+    (session-overview, today, you, progress, warm-up, set-log, mini-routine,
+    onboarding, session-summary, block-end). Every one was found by reading
+    code. Candidate rule: hold a screen's `src` to the type of each read-model
+    it reads, as `verify` already does for CLI subcommand names. The `cli`
+    surface has the same gap: its read-model edges are not checked against
+    subcommands.
+  - **`projects-to` is unchecked against what a fetch reads.** Six edges were
+    wrong (`set-logged` → `last-time`/`muscle-coverage`, `mini-routine-done`
+    → `week-progress`, missing `session-finished`/`block-started`). A derived
+    value (the plan, computed from profile, add-on and block) has no node, so
+    every read-model built on it repeats the fan-in by hand.
+  - **Every policy collapsed.** All Formox aggregates live in one stored value,
+    so each "policy or one handler" call went to one handler; the model now has
+    no policies. eventgraph cannot declare one consistency boundary over several
+    aggregates, nor conditional or exclusive `produces` (`log-set` finishes
+    the session only on the last set).
+  - **Things the model cannot say,** each worked around: state derived on read
+    (block end; `immortal` as the workaround); a navigation-only action
+    (`ui_only` still needs an event, so pause/resume became edges); a screen
+    that only collects command parameters fails `screen-empty`; a read-model
+    fed by a command's outcome (`workout-summary`), read as a snapshot when a
+    screen opens, or applied to a draft (the onboarding picker); a third
+    gate-comment case for per-offer unreachable codes.
+  - **A domain rule in a screen is invisible to both tools.** The red-flag rule
+    sat in the pain check because the contract dropped its input
+    (`redFlag: Bool`); only an app test pinned it.
+  - **The CLI's JSON is a contract nothing states.** Modelling a mode as one
+    Swift enum needed hand-written coding to keep the JSON; synthesized enum
+    coding prints `{"_0": …}`.
 - **teeveebuddy trial done (2026-11-17).** Favourites go through a pure-Dart
   core (`packages/boxseat_core`: the Drift store moved in, `FavoritesCore.handle`,
   the order behind a key-value port, one policy) with a Dart CLI offering
