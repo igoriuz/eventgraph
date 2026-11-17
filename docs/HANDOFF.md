@@ -1,11 +1,31 @@
 # Handoff
 
-Last updated: 2026-11-17
+Last updated: 2026-11-17 (late)
 
 ## Open points
 
 ### Claude next
 
+- **verify hints, read-model reads and `same_transaction` (merged 2026-11-17,
+  unreleased).** From the trial feedback, item 1 of the release-3 prep (parity
+  scoped to a surface, `unreachable: [CODE]`) skipped on purpose while the
+  Formox and teeveebuddy sessions keep testing; ask them before building it.
+  What went in:
+  - An unhandled code now names, as "maybe handled in", up to 3 files the
+    caller's source refers to (path in an import, or a type named after the
+    file) that contain it; the throwing side, tests and config are left out.
+    JSON: `foundElsewhere` on the contract issue. Whole-repo search was
+    rejected: REFUSED alone hits 28 files in teeveebuddy.
+  - `verify` holds every reader of a read-model whose pointer has a `#symbol`
+    to that symbol, in its own source or one hop away (not the defining file).
+    Opt-in on purpose: teeveebuddy's read-models name questions, 160 of 184
+    reads would fail an id search. JSON: `reads` block. Formox can opt in
+    by adding `#TodaysSession` etc. to its read-model pointers.
+  - Policy flag `same_transaction: <reason>` silences
+    `policy-not-idempotent` and `policy-spans-aggregates` (Formox's three
+    one-write chains).
+  - No change in verdict on teeveebuddy, Formox, jetphrase, pkmn (pkmn: 18
+    unhandled as before, now with hints).
 - **Release 2 of the core concept: two trials**, each run in its own project
   with the handoff and start prompt in `docs/trials/` — `formox.md` (Swift,
   the whole app, done) and `teeveebuddy.md` (Flutter, favourites only, done).
@@ -137,6 +157,18 @@ anything but a positive whole number; `check`, `verify`, `validate` and
 
 ### Later on purpose
 
+- `derived: <reason>` on commands/policies (Formox `end-block`, joint swaps):
+  no rule today asks for a write, so the flag would change nothing `check`
+  says; model as is until a rule needs it.
+- A rule against `ui_only` commands producing events: wrong, `ui_only` means
+  "no headless surface needed", not "no state change" (a drag to reorder
+  writes). Formox's `pause-session`/`resume-session` events are a model fix
+  there.
+- Maintenance from the 2026-11-17 pass: the CLI verify printer touches four
+  places per check (clean line, issues, unsearchable, summary), one table per
+  check would end that; the hint search in `contract.ts` could be its own
+  file; two whole-word matchers (`refersTo`, `namesSymbol`); `verify`
+  walks the source tree twice when both new checks need it.
 
 - Inferring `issues`/`sees` when exactly one non-headless actor exists
   (Formox trial: 22 + 19 edges of boilerplate). Not built: it saves typing
