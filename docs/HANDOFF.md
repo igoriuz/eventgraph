@@ -8,11 +8,9 @@ Last updated: 2026-11-17
 
 - **Release 2 of the core concept: two trials**, each run in its own project
   with the handoff and start prompt in `docs/trials/` — `formox.md` (Swift,
-  the whole app, done) and `teeveebuddy.md` (Flutter, favourites only, next).
-  Each ends with a friction-log summary here; together they decide release 3 (contract
-  generation). Known friction already: the parity lane switches on graph-wide,
-  so a narrow trial in a large model gets every other command as a finding
-  (226 in teeveebuddy).
+  the whole app, done) and `teeveebuddy.md` (Flutter, favourites only, done).
+  Both friction summaries are below; together they decide release 3 (contract
+  generation) — see "Igor decides".
 - **Formox trial done (2026-11-17).** Every Formox command goes through
   `Core.handle`; `AppModel` has no generic `update`; 25 commands are offered
   by the `formox` CLI, 3 are `ui_only` with a reason, the rest are issued by
@@ -47,6 +45,41 @@ Last updated: 2026-11-17
     `verify` checks the `src` exists, not that the screen reads it.
   - **The CLI paid off at once:** it found a pre-existing bug (deleting the
     store failed under "Application Support", a percent-encoded path).
+- **teeveebuddy trial done (2026-11-17).** Favourites go through a pure-Dart
+  core (`packages/boxseat_core`: the Drift store moved in, `FavoritesCore.handle`,
+  the order behind a key-value port, one policy) with a Dart CLI offering
+  `toggle-favorite`, `move-favorite` and four read subcommands; state-stored,
+  events are emitted, not kept. No visible change; analyze clean, 2489 app
+  tests and 17 package tests green, `verify` clean (718 pointers), the trial's
+  own `check` findings closed. Dart recipe: skill `references/dart.md`. Full
+  log: teeveebuddy `docs/plans/2026-11-17-core-first-trial.md`. What it says
+  for release 3:
+  - **The parity lane is unusable for a partial migration.** With one `cli`
+    surface, `check` reports 139 `command-ui-only` and 84
+    `read-model-ui-only` — every UI node — and the trial's own were found
+    only with `check --json | jq` on ids. Wanted: parity scoped to what a
+    surface claims, or `check --only <ids>`; the full list stays the backlog.
+  - **Composed read-models cannot be partly headless.** `home-channel-row` is
+    favourites + recents + now/next; the core answers only the favourites
+    part, yet the CLI `reads` the whole node. Recipe advice: split read-models
+    by question (`favorite-channels` read by Home, Live, Guide and the CLI).
+  - **Codes a caller cannot meet** (again, as in Formox): a `NOT_FAVORITE` on
+    `move-favorite` is right for the CLI and impossible from the screen;
+    worked around with event-less no-ops. Same fix: `unreachable: [CODE]`.
+  - **Handling in a helper file.** `verify` reported `REFUSED` as unhandled on
+    the player; it is handled in `record_action.dart`. Fixed by adding the
+    file to `src`; the message could suggest exactly that. Formox's shared
+    `AppModel.send` is the same shape.
+  - **Undeclared reactions and second writers are invisible.** A stream
+    subscription was a hidden policy; a backup restore and a playlist delete
+    write the favourite order too. Only reading the code found them.
+  - **Boilerplate: 6 places per command**, all derivable from the model's ids
+    (command class + `id`, CLI `addCommand` + `case`, event class + `id` +
+    `toJson`, `switch` arm). Evidence for generating the contract, not the
+    handlers.
+  - **A command's `src` changes meaning mid-migration** (issuing UI → core
+    handler). A convention — command → handler, screen → UI — would make a
+    half-migrated model readable.
 
 Released is 0.4.1 (tag `v0.4.1`), which is `main`. A release needs the
 versions raised in the four `package.json` files, `packages/cli/src/index.ts`
@@ -79,6 +112,15 @@ anything but a positive whole number; `check`, `verify`, `validate` and
 
 ### Igor decides
 
+- **Release 3 scope, after both trials.** Recommendation: generate the
+  contract only — command and event types with their ids, rejection enums and
+  the CLI subcommand names — from the model (Formox: 8 touch points per
+  command, teeveebuddy: 6, all mechanical); handlers stay hand-written, the
+  judgement was always there. Before it, two small rule changes both trials
+  asked for: parity scoped to what a surface claims (or `check --only`), and
+  `unreachable: [CODE]` per offer. Smaller: a `verify` hint to add the
+  handling file to `src`; a modelling convention for policies written in one
+  transaction and for derived state (Formox).
 - **jetphrase: 13 `command-buried` warnings** since the rule was enabled in
   the preset on 2026-11-14. Most come from the model: the only `entry` screen
   is `trips.onboarding-welcome`, so every depth is measured through the

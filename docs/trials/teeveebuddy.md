@@ -1,5 +1,11 @@
 # Handoff: core-first trial in Boxseat (teeveebuddy), 2026-11-17
 
+**Done 2026-11-17.** Merged in teeveebuddy (`c6707764`); the summary is in
+`docs/HANDOFF.md` ("teeveebuddy trial done"), the full log in teeveebuddy
+`docs/plans/2026-11-17-core-first-trial.md`. The optional second slice
+(playlist sync as a `service`) was not started and stays in teeveebuddy's
+handoff.
+
 Igor chose teeveebuddy (`~/Private/teeveebuddy`, the app is called Boxseat) on
 2026-11-17 as the second trial of the core concept (`docs/core-concept.md`,
 release 2). It is the concept's row "All platforms, one UI toolkit"
@@ -10,7 +16,7 @@ for the `core-first` skill. Moving the whole app is not the goal.
 ## Open points
 
 **Next session** (in `~/Private/teeveebuddy`, in its own worktree)
-- [ ] **Carry this over (S).** A plan `docs/plans/2026-11-17-core-first-trial.md`
+- [x] **Carry this over (S).** A plan `docs/plans/2026-11-17-core-first-trial.md`
   from this file, and one entry in its `docs/handoff.md` pointing at it.
   Move the eventgraph commands to `eventgraph-cli@0.4` and run `check` and
   `verify` once on 0.4. `verify` on 0.4.1 reports one finding the old version
@@ -18,7 +24,7 @@ for the `core-first` skill. Moving the whole app is not the goal.
   `rejects` lists `REFUSED`, and the player's source never mentions it. Check
   whether a refused recording shows anything on the player; fix the code, or
   the model if `REFUSED` is handled elsewhere.
-- [ ] **Core package (M).** `packages/boxseat_core`, pure Dart: no
+- [x] **Core package (M).** `packages/boxseat_core`, pure Dart: no
   `package:flutter`, no plugins. Two couplings to cut first:
   - `lib/core/storage/database.dart` opens the file through `path_provider`
     (a Flutter plugin). The database class takes an opened executor instead;
@@ -30,17 +36,17 @@ for the `core-first` skill. Moving the whole app is not the goal.
     JSON file next to the store.
   Extend `test/architecture/` with a test that the package imports nothing
   from Flutter or from `lib/`.
-- [ ] **Favourites through the core (M).** Commands `toggle-favorite`,
+- [x] **Favourites through the core (M).** Commands `toggle-favorite`,
   `move-favorite`; read-models `favorites-list`, `home-channel-row`,
   `my-list-row`, `live-lineup` (the favourites part). One toggle reaches seven
   read-models (`eventgraph impact toggle-favorite`), which is the shared-data
   case the concept is about. `FavoritesRepository` and `FavoriteOrder` delegate
   to the core; screens and view models do not change.
-- [ ] **Dart CLI (S).** `packages/boxseat_core/bin/boxseat.dart`:
+- [x] **Dart CLI (S).** `packages/boxseat_core/bin/boxseat.dart`:
   `--store <sqlite>`, `--json`, subcommands named with the command ids as
   literals, plus read subcommands for the four read-models. A CLI-level test
   runs toggle → move → list against a temporary store.
-- [ ] **Model (S).** A `boxseat-cli` surface (`kind: cli`) offering the two
+- [x] **Model (S).** A `boxseat-cli` surface (`kind: cli`) offering the two
   commands and reading the four read-models, `src` on the new core files.
   Expect the parity lane to report every other UI command and read-model in
   the app — 139 `command-ui-only` and 87 `read-model-ui-only`, measured on a
@@ -51,10 +57,10 @@ for the `core-first` skill. Moving the whole app is not the goal.
 - [ ] **Second slice, optional (M).** Playlist sync with the Xtream provider as
   a `service` with `calls` and a failure path — tests the service rules on
   real code. Only if the first slice went smoothly.
-- [ ] **Dart recipe (S).** Write `references/dart.md` in the `core-first`
+- [x] **Dart recipe (S).** Write `references/dart.md` in the `core-first`
   skill (`~/.claudes/skills/core-first`) from what worked, in the shape of
   `swift.md`, and add it to `references/stacks.md`.
-- [ ] **Friction log** in the plan file; a summary into eventgraph's
+- [x] **Friction log** in the plan file; a summary into eventgraph's
   `docs/HANDOFF.md` at the end.
 
 **Done when** favourites go only through the core, the CLI drives them against
