@@ -2,7 +2,8 @@ import type { EventGraph } from './graph.js';
 import type { GraphNode } from './schema.js';
 import { qualifiedId } from './schema.js';
 import { pointersOf } from './verify.js';
-import { foundIn, ignoringCase, sourceFilesOf } from './source-search.js';
+import { relative } from 'node:path';
+import { foundIn, ignoringCase, referencedBy, sourceFilesOf, sourceFilesUnder } from './source-search.js';
 import { HUMAN_KINDS, kindOf } from './rules/kit.js';
 
 /**
@@ -35,6 +36,11 @@ export interface ContractIssue {
   /** Qualified id of the command that can answer with it. */
   command: string;
   code: string;
+  /**
+   * Files outside the caller's source that name the code, relative to the
+   * source root, closest to the caller first. Absent when there are none.
+   */
+  foundElsewhere?: string[];
 }
 
 export interface ContractReport {
@@ -106,5 +112,63 @@ export function verifyRejectionHandling(graph: EventGraph, sourceRoot: string): 
     }
   }
 
+  addWhereElseFound(graph, issues, sourceRoot);
   return { checked, callers, issues, unsearchable };
+}
+
+/** How many files a hint names; past that it stops pointing anywhere. */
+const HINT_LIMIT = 3;
+
+/** Configuration and data name codes without handling them. */
+const NOT_HANDLING_EXT = /\.(ya?ml|json|toml)$/i;
+
+/** Tests name every code they provoke; they handle none of them. */
+const TEST_PATH = /(^|[\\/])(tests?|__tests__|spec|specs|test_driver|integration_test)[\\/]|[._-](test|spec)\.\w+$|Tests?\.\w+$/;
+
+/**
+ * Where a code the caller misses is named instead.
+ *
+ * The usual cause of an unhandled code is not a missing branch but a model
+ * that points at too few files: the refusal is met in a helper the screen
+ * calls, or in one shared handler every screen sends through. Naming that file
+ * turns the finding into a one-line fix of `implemented_by`.
+ *
+ * Only files the caller's own source refers to are candidates — one hop. A
+ * whole-tree search drowns a common code such as REFUSED in unrelated hits. The
+ * side that throws the code is left out (the source of every node that is not
+ * a caller), as are tests and configuration. What remains is a hint, not a
+ * verdict: a code named there may still be ignored.
+ */
+function addWhereElseFound(graph: EventGraph, issues: ContractIssue[], sourceRoot: string): void {
+  if (issues.length === 0) return;
+
+  const callers = new Map<string, GraphNode>();
+  const excluded = new Set<string>();
+  for (const node of graph.getAllNodes()) {
+    if (isCaller(node)) callers.set(qualifiedId(node.context, node.id), node);
+    else for (const f of sourceFilesOf(node, sourceRoot)) excluded.add(f);
+  }
+
+  const candidates = sourceFilesUnder(sourceRoot).filter(
+    f => !excluded.has(f) && !NOT_HANDLING_EXT.test(f) && !TEST_PATH.test(relative(sourceRoot, f))
+  );
+
+  const byCaller = new Map<string, ContractIssue[]>();
+  for (const issue of issues) byCaller.set(issue.caller, [...(byCaller.get(issue.caller) ?? []), issue]);
+
+  for (const [callerId, missing] of byCaller) {
+    const near = referencedBy(sourceFilesOf(callers.get(callerId)!, sourceRoot), candidates);
+    const filesByCode = new Map(missing.map(i => [i.code, [] as string[]]));
+    for (const f of near) {
+      for (const code of foundIn([f], filesByCode.keys(), ignoringCase)) filesByCode.get(code)!.push(f);
+    }
+    for (const issue of missing) {
+      const found = filesByCode.get(issue.code)!;
+      if (found.length > 0) issue.foundElsewhere = found.sort().slice(0, HINT_LIMIT).map(f => relative(sourceRoot, f));
+    }
+  }
+}
+
+function isCaller(node: GraphNode): boolean {
+  return node.type === 'actor' || (node.type === 'screen' && HUMAN_KINDS.includes(kindOf(node)));
 }

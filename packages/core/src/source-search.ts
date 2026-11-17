@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { basename, extname, isAbsolute, join } from 'node:path';
 import type { GraphNode } from './schema.js';
 import { pointerPath, pointersOf } from './verify.js';
 
@@ -81,6 +81,52 @@ export function sourceFilesOf(node: GraphNode, sourceRoot: string): string[] {
     filesUnder(isAbsolute(path) ? path : join(sourceRoot, path), files);
   }
   return files;
+}
+
+/** Every readable source file under `root`, skipping build output and dot directories. */
+export function sourceFilesUnder(root: string): string[] {
+  const files: string[] = [];
+  filesUnder(root, files);
+  return files;
+}
+
+/**
+ * The files among `candidates` that `from` refers to, one hop. A file is
+ * referred to by its path in an import (`'record_action.dart'`,
+ * `'./recordAction'`), or, where a language imports modules rather than
+ * files, by a type named after it (`AppModel` for `AppModel.swift`). A plain
+ * word does not count: a screen saying `encounters` has not imported
+ * `encounters.ts`. A file never refers to itself.
+ */
+export function referencedBy(from: string[], candidates: string[]): string[] {
+  const own = new Set(from);
+  const text = from.map(f => readOrEmpty(f)).join('\n');
+  return candidates.filter(f => !own.has(f) && refersTo(text, basename(f, extname(f))));
+}
+
+const WORD_CHAR = /[A-Za-z0-9_]/;
+
+function refersTo(text: string, stem: string): boolean {
+  if (stem.length < 3) return false;
+  const typeLike = /^[A-Z]/.test(stem);
+  let at = text.indexOf(stem);
+  while (at !== -1) {
+    const before = text[at - 1] ?? ' ';
+    const after = text[at + stem.length] ?? ' ';
+    const whole = !WORD_CHAR.test(before) && !WORD_CHAR.test(after);
+    const asPath = /['"`/\\]/.test(before) && /['"`.]/.test(after);
+    if (whole && (typeLike || asPath)) return true;
+    at = text.indexOf(stem, at + 1);
+  }
+  return false;
+}
+
+function readOrEmpty(file: string): string {
+  try {
+    return readFileSync(file, 'utf-8');
+  } catch {
+    return '';
+  }
 }
 
 /**

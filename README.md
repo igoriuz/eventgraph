@@ -182,7 +182,7 @@ eventgraph list / query             read the graph
 eventgraph validate                 shape: are types and edges legal?
 eventgraph check                    completeness: what is missing?
 eventgraph check --next 3           the most pressing gaps, in priority order
-eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist
+eventgraph verify                   pointers resolve, screens know the rejections, CLI names exist, core read-models are read
 eventgraph slice <event>            the swimlane around one event
 eventgraph lifecycle <aggregate>    its events, the closing one last
 eventgraph impact <node>            what a change sets off, and who depends on it
@@ -468,6 +468,15 @@ mentioned only in a comment counts as handled, and one assembled at runtime is
 not found. It catches the ordinary case, and a false pass is cheaper than a
 check nobody runs.
 
+A missing code is often handled after all, just not in the files the model
+points at: in a helper the screen calls, or in one shared handler every screen
+sends through. So a reported code names, as "maybe handled in", up to three
+files the caller's own source refers to — by path in an import, or by a type
+named after the file (`AppModel` for `AppModel.swift`) — that contain it.
+The side that throws it, tests and configuration are left out. If one of them
+is the handler, add it to the caller's `implemented_by`; in `--json` the
+files are `foundElsewhere` on the issue.
+
 ### Subcommands the model claims
 
 The parity lane takes the model's word that a `cli` surface offers a command.
@@ -477,6 +486,25 @@ Swift `CommandConfiguration(commandName: "add-expense")`, in commander
 `.command('add-expense')`. A name derived from a type name is not found, and
 that is the point: the literal is what lets an agent and a reader find the
 subcommand from the model.
+
+### Core read-models the screens really read
+
+In an app built around a core, a migration stops halfway without anyone
+noticing: the CLI reads the core read-model, the screen still computes the same
+answer from raw state, and the model says the screen `reads` it. Name the
+core type with a `#symbol` on the read-model's pointer and `verify` holds
+every reader to it:
+
+```yaml
+todays-session: { type: read-model, src: Sources/Core/ReadModels.swift#TodaysSession }
+```
+
+The symbol (the last segment of a dotted one, so `FavoritesCore.favoritesList`
+looks for `favoritesList`) must appear as a whole word in the reader's source
+or in a file that source refers to, so reading through a repository or a view
+model counts. A read-model without a `#symbol` names a question the code
+answers under other names and is not checked. In `--json` the result is the
+`reads` block `{checked, issues[{reader, readModel, symbol}], unsearchable}`.
 
 ## Two codebases, one product
 

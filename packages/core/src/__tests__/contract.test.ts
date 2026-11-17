@@ -233,6 +233,62 @@ describe('rejection contracts', () => {
       expect(verifyRejectionHandling(graph, root).callers).toBe(0);
     });
 
+    describe('where else the code is named', () => {
+      it('names a helper the screen uses that handles the code', () => {
+        write('ui/ReportScreen.dart', "import 'report_action.dart';\nreportAction();");
+        write('ui/report_action.dart', 'case Report.tooFast: slowDown();');
+
+        const [issue] = verifyRejectionHandling(offered(['ui/ReportScreen.dart']), root).issues;
+        expect(issue.foundElsewhere).toEqual(['ui/report_action.dart']);
+      });
+
+      it('finds a shared handler by the type named after its file', () => {
+        // Swift imports modules, not files: the screen names AppModel, the file is AppModel.swift.
+        write('ui/ReportScreen.swift', '@Environment(AppModel.self) var model');
+        write('app/AppModel.swift', 'func send() { case .tooFast: toast() }');
+
+        const [issue] = verifyRejectionHandling(offered(['ui/ReportScreen.swift']), root).issues;
+        expect(issue.foundElsewhere).toEqual(['app/AppModel.swift']);
+      });
+
+      it('ignores files the screen does not use, however often they name the code', () => {
+        write('ui/ReportScreen.dart', 'nothing');
+        write('cast/cast_status.dart', 'TOO_FAST');
+
+        const [issue] = verifyRejectionHandling(offered(['ui/ReportScreen.dart']), root).issues;
+        expect(issue.foundElsewhere).toBeUndefined();
+      });
+
+      it('leaves out the side that throws, tests and configuration', () => {
+        write('ui/ReportScreen.dart', "import 'report_core.dart'; import 'report_test.dart'; import 'codes.yaml';");
+        write('core/report_core.dart', 'throw Rejection.tooFast;');
+        write('ui/report_test.dart', 'expect(TOO_FAST)');
+        write('config/codes.yaml', 'TOO_FAST: slow down');
+
+        const graph = offered(['ui/ReportScreen.dart']);
+        graph.getNode('app.report')!.data = { rejects: ['TOO_FAST'], implemented_by: ['core/report_core.dart'] };
+
+        const [issue] = verifyRejectionHandling(graph, root).issues;
+        expect(issue.foundElsewhere).toBeUndefined();
+      });
+
+      it('does not take a plain word for an import of the file named like it', () => {
+        write('ui/ReportScreen.ts', 'const rows = tables.encounters;');
+        write('server/encounters.ts', 'throw new SenderError("TOO_FAST")');
+
+        const [issue] = verifyRejectionHandling(offered(['ui/ReportScreen.ts']), root).issues;
+        expect(issue.foundElsewhere).toBeUndefined();
+      });
+
+      it('does not take a word that merely contains the file name for a reference', () => {
+        write('ui/ReportScreen.dart', 'final helperish = 1;');
+        write('ui/helper.dart', 'TOO_FAST');
+
+        const [issue] = verifyRejectionHandling(offered(['ui/ReportScreen.dart']), root).issues;
+        expect(issue.foundElsewhere).toBeUndefined();
+      });
+    });
+
     it('does not hold a surface to a command it only displays', () => {
       write('ui/ReportScreen.swift', 'nothing');
 
