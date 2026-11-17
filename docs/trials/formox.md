@@ -1,5 +1,10 @@
 # Handoff: core-first trial in Formox, 2026-11-17
 
+**Done 2026-11-17.** All open points below are closed; the summary is in
+`docs/HANDOFF.md` ("Formox trial done"), the full log in Formox
+`docs/core-first-friction.md`. Left in Formox: Igor checks the workout on the
+device.
+
 Igor chose Formox (`~/Private/formox`) on 2026-11-17 as the first trial of the
 core concept (`docs/core-concept.md`, release 2): an existing native iOS app
 moved onto the core-first architecture, using the `core-first` skill and its
@@ -9,17 +14,17 @@ authority".
 ## Open points
 
 **Next session** (in `~/Private/formox`, in its own worktree)
-- [ ] **Carry this over (S).** Copy the open points below into Formox's
+- [x] **Carry this over (S).** Copy the open points below into Formox's
   `docs/handoff.md` under "Claude next", with a pointer to this file. Switch the
   handoff's eventgraph commands from `eventgraph-cli@0.3` to `@0.4` and run
   `check` and `verify` once on 0.4 (new: `service` rules, screens held to
   rejection codes, `impact` follows readers).
-- [ ] **Saved data first (S, recommended before the core).** The pending item in
+- [x] **Saved data first (S, recommended before the core).** The pending item in
   Formox's handoff: drop the `decodeIfPresent` fallbacks, add a schema version,
   move `lastLogged`/`restStartedAt` into the `.resting` phase. Before 1.0 no
   backward compatibility is needed (Igor, 2026-11-16), and the store port below
   then wraps the final format.
-- [ ] **Core seam (M).** In `Packages/FormoxKit`: `Command`, `Outcome`,
+- [x] **Core seam (M).** In `Packages/FormoxKit`: `Command`, `Outcome`,
   `Rejection` and `Core.handle` for the first three commands, chosen to cover
   three shapes — `accept-plan` (creates the log), `report-pain` (changes it),
   `end-workout-early` (closes a session). Ports: a `LogStore` (load, save,
@@ -27,25 +32,25 @@ authority".
   the package so the CLI shares it) and a `Clock`. `AppModel` calls
   `core.handle` for these three; its generic `update { }` stays for the rest
   for now.
-- [ ] **CLI (S).** Executable target `formox` in FormoxKit with
+- [x] **CLI (S).** Executable target `formox` in FormoxKit with
   swift-argument-parser: `--store` (default `.formox/training.json`), `--json`,
   one subcommand per moved command named with the command id as a literal, plus
   read subcommands for `todays-session`, `active-session`, `next-loads`.
   `scripts/cli-test.sh` runs onboarding → pain report → end as CLI calls. Add
   it to `make test`.
-- [ ] **Model (S).** A `formox-cli` surface (`kind: cli`, `src` at the CLI
+- [x] **Model (S).** A `formox-cli` surface (`kind: cli`, `src` at the CLI
   target) offering what the CLI has. `check` then reports every other command
   as `command-ui-only`: that is the backlog.
-- [ ] **Move the rest flow by flow (L).** Onboarding and plan, settings and
+- [x] **Move the rest flow by flow (L).** Onboarding and plan, settings and
   reminders, block and sidequests, then the workout last — it is the largest
   (`WorkoutSession` is already a state machine; `WorkoutModel` shrinks to view
   state plus the Live Activity mirror). Each move: one commit, a core-level test
   per command (happy path and each code in `rejects`), the CLI subcommand, the
   `src` pointers, `verify`.
-- [ ] **Side effects out of `AppModel.save`.** `ReminderScheduler`,
+- [x] **Side effects out of `AppModel.save`.** `ReminderScheduler`,
   `RestNotification` and `WorkoutActivityController` stay in the app and react
   to the events in an `Outcome`; nothing in the core schedules or notifies.
-- [ ] **Friction log** in Formox `docs/core-first-friction.md`, one line per
+- [x] **Friction log** in Formox `docs/core-first-friction.md`, one line per
   disagreement between model and code, check or verify gap, repeated
   boilerplate. When done, a summary into eventgraph's `docs/HANDOFF.md`.
 

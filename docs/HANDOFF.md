@@ -8,11 +8,45 @@ Last updated: 2026-11-17
 
 - **Release 2 of the core concept: two trials**, each run in its own project
   with the handoff and start prompt in `docs/trials/` — `formox.md` (Swift,
-  the whole app) and `teeveebuddy.md` (Flutter, favourites only). Each ends
-  with a friction-log summary here; together they decide release 3 (contract
+  the whole app, done) and `teeveebuddy.md` (Flutter, favourites only, next).
+  Each ends with a friction-log summary here; together they decide release 3 (contract
   generation). Known friction already: the parity lane switches on graph-wide,
   so a narrow trial in a large model gets every other command as a finding
   (226 in teeveebuddy).
+- **Formox trial done (2026-11-17).** Every Formox command goes through
+  `Core.handle`; `AppModel` has no generic `update`; 25 commands are offered
+  by the `formox` CLI, 3 are `ui_only` with a reason, the rest are issued by
+  timers or policies. Every read-model is a core type the CLI prints. `check`
+  reports no findings, `verify` is clean, `make test` green (125 core tests,
+  CLI flow script, 32 app tests). Full log: Formox `docs/core-first-friction.md`.
+  What it says for release 3:
+  - **Boilerplate per command: 8 touch points** (`Command` case, dispatch
+    arm, handler, `Event` cases, `Rejection` raw values, CLI subcommand of
+    ~10 lines, `rejects`/`src` in the model, a gate comment per offering
+    screen). Mechanical, but never the hard part: the cost was in judging
+    events and refusals. The twelve workout steps are near-identical. Weak
+    case for generating the contract on this trial alone; decide with
+    teeveebuddy.
+  - **Policies the code does in one write.** The model chains
+    `report-pain` → policy → `exclude-exercise`, `session-finished` →
+    `apply-progression` → `decide-next-loads`, `finish-after-last-set` →
+    `finish-session`; the code is one atomic write each, and the handler
+    emits both events. Three times the same shape: worth a rule or a
+    modelling convention (a policy whose two commands write the same aggregate
+    in the same transaction).
+  - **Derived, not written.** `end-block` and the joint-swap policies have no
+    write; the state is computed when read. The model cannot say "derived".
+  - **`ui_only` commands that still emit events** (`pause-session`,
+    `resume-session`): `check` accepts them; their events describe nothing.
+  - **`verify` and gates.** Screens are held to every code of what they
+    offer, also codes their own gate makes impossible: ~15 gate comments.
+    Proposal: `unreachable: [CODE]` per offer. Refusals land in one shared
+    handler (`AppModel.send`), which `verify` cannot point at.
+  - **Read-model parity is invisible.** The core read-models are used by the
+    CLI only; screens still compute from the log (e.g. muscle coverage).
+    `verify` checks the `src` exists, not that the screen reads it.
+  - **The CLI paid off at once:** it found a pre-existing bug (deleting the
+    store failed under "Application Support", a percent-encoded path).
 
 Released is 0.4.1 (tag `v0.4.1`), which is `main`. A release needs the
 versions raised in the four `package.json` files, `packages/cli/src/index.ts`
