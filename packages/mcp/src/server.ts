@@ -19,7 +19,7 @@ loadProject(projectDir);
 
 const server = new McpServer({
   name: 'eventgraph',
-  version: '0.4.1',
+  version: '0.5.0',
 });
 
 // Each tool carries its own description and input schema, so registering is

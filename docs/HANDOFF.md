@@ -7,7 +7,7 @@ Last updated: 2026-11-17 (late)
 ### Claude next
 
 - **verify hints, read-model reads and `same_transaction` (merged 2026-11-17,
-  unreleased).** From the trial feedback, item 1 of the release-3 prep (parity
+  released in 0.5.0).** From the trial feedback, item 1 of the release-3 prep (parity
   scoped to a surface, `unreachable: [CODE]`) skipped on purpose while the
   Formox and teeveebuddy sessions keep testing; ask them before building it.
   What went in:
@@ -137,10 +137,21 @@ Last updated: 2026-11-17 (late)
     handler). A convention — command → handler, screen → UI — would make a
     half-migrated model readable.
 
-Released is 0.4.1 (tag `v0.4.1`), which is `main`. A release needs the
+Released is 0.5.0 (tag `v0.5.0`, 2026-11-18), which is `main`. A release needs the
 versions raised in the four `package.json` files, `packages/cli/src/index.ts`
 and `packages/mcp/src/server.ts`, then a tag `v*`; npm trusted publishing is
 set up for all four packages.
+
+What 0.5.0 changed for someone on 0.4.1 (all additive; no verdict changes
+unless a read-model pointer carries a `#symbol`):
+- `verify`: an unhandled rejection code names up to three "maybe handled in"
+  files the caller's source refers to; JSON `contract.issues[].foundElsewhere`.
+- `verify`: readers of a read-model whose pointer has a `#symbol` must name
+  that symbol in their source or one hop away; new JSON block `reads`
+  `{checked, issues[{reader, readModel, symbol}], unsearchable}`, counted in
+  `ok`.
+- Policy flag `same_transaction: <reason>` silences `policy-not-idempotent`
+  and `policy-spans-aggregates`.
 
 What 0.4.0 changed for someone on 0.3.0:
 - Node type `service` and edge `calls` (command → service) in the
