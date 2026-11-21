@@ -103,6 +103,11 @@ from wherever it starts, so register it per repository. Every other client takes
 the same stdio command; [MCP](#mcp) covers Codex, Cursor, Zed and the tools it
 exposes.
 
+For building an app around a headless core with eventgraph as its map, there is a
+Claude Code skill in [`skills/core-first`](skills/core-first/SKILL.md): the loop per
+flow (model, impact, check, core, shells, test, verify) and worked recipes for Swift
+and Dart. Symlink or copy the folder into `~/.claude/skills/`.
+
 ## Vocabulary
 
 | Node | Is |

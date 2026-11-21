@@ -1,0 +1,28 @@
+context: trips
+nodes:
+  traveller:      { type: actor }
+  trip:           { type: aggregate, immortal: true, src: Sources/TripCore/Store.swift }
+  positive-amount: { type: invariant }
+  create-trip:    { type: command, rejects: [NOT_POSITIVE, TRIP_EXISTS], src: Sources/TripCore/Handlers.swift }
+  trip-created:   { type: event }
+  add-expense:    { type: command, rejects: [NOT_POSITIVE, NO_TRIP], src: Sources/TripCore/Handlers.swift }
+  expense-added:  { type: event }
+  budget-watch:   { type: policy, idempotent: true, src: Sources/TripCore/Policies.swift }
+  warn-budget:    { type: command, rejects: [NO_TRIP], src: Sources/TripCore/Handlers.swift }
+  budget-warned:  { type: event }
+  trip-balance:   { type: read-model, consistency: immediate, src: Sources/TripCore/ReadModels.swift }
+  trip-screen:    { type: screen, entry: true, src: Sources/TripUI/TripScreen.swift }
+  trip-cli:       { type: screen, kind: cli, src: Sources/TripCLI/TripCLI.swift }
+edges:
+  issues:      { traveller: [create-trip, add-expense] }
+  sees:        { traveller: [trip-screen, trip-cli] }
+  offers:      { trip-screen: [add-expense], trip-cli: [create-trip, add-expense] }
+  reads:       { trip-screen: [trip-balance], trip-cli: [trip-balance], budget-watch: [trip-balance] }
+  produces:    { create-trip: [trip-created], add-expense: [expense-added], warn-budget: [budget-warned] }
+  acts-on:     { create-trip: [trip], add-expense: [trip], warn-budget: [trip] }
+  enforces:    { create-trip: [positive-amount], add-expense: [positive-amount] }
+  guards:      { positive-amount: [trip] }
+  belongs-to:  { trip-created: [trip], expense-added: [trip], budget-warned: [trip] }
+  projects-to: { trip-created: [trip-balance], expense-added: [trip-balance], budget-warned: [trip-balance] }
+  triggers:    { expense-added: [budget-watch] }
+  invokes:     { budget-watch: [warn-budget] }
