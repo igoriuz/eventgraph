@@ -1,6 +1,10 @@
 # Handoff
 
-Last updated: 2026-11-17 (late)
+Last updated: 2026-11-21
+
+The `core-first` skill lives in `skills/core-first` since 2026-11-21 (before: an
+unversioned folder in `~/.claude/skills`, now a symlink to this one). It pins the CLI
+as `npx -y eventgraph-cli@0.5`; bump that pin with each minor release.
 
 ## Open points
 

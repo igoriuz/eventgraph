@@ -1,0 +1,3 @@
+name: trips
+preset: event-modeling
+contexts: [trips]
